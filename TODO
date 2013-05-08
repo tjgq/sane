@@ -1,0 +1,10 @@
+* Support bit depths other than 8
+* Correctly handle vector-valued options
+* Report option capabilities
+* Support authorization callbacks
+* ReadImage should return more information, such as DPI
+* Call sane_init as required by Open, not upon package init
+* Provide helper methods for common scanning options
+* Provide a no-frills, single-call scanning interface
+* Make errors report the API call in which they occur
+* Self-contained package documentation
