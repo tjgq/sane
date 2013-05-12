@@ -79,6 +79,11 @@ type Option struct {
 	StrConstr   []string // constraint for string-valued options
 	IntConstr   []int    // constraint for integer-valued options
 	RangeConstr *Range   // constraint for range-valued option
+	IsActive    bool     // whether option is active
+	IsSettable  bool     // whether option can be set
+	IsAutomatic bool     // whether option has an auto value
+	IsEmulated  bool     // whether option is emulated
+	IsAdvanced  bool     // whether option is advanced
 	index       int
 }
 
@@ -247,6 +252,11 @@ func parseOpt(d *C.SANE_Option_Descriptor) (o Option) {
 	case C.SANE_CONSTRAINT_STRING_LIST:
 		parseStrConstr(d, &o)
 	}
+	o.IsActive = (d.cap & C.SANE_CAP_INACTIVE) == 0
+	o.IsSettable = (d.cap & C.SANE_CAP_SOFT_SELECT) != 0
+	o.IsAutomatic = (d.cap & C.SANE_CAP_AUTOMATIC) != 0
+	o.IsEmulated = (d.cap & C.SANE_CAP_EMULATED) != 0
+	o.IsAdvanced = (d.cap & C.SANE_CAP_ADVANCED) != 0
 	return
 }
 
