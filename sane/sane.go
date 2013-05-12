@@ -84,7 +84,7 @@ type Option struct {
 	IsAutomatic bool     // whether option has an auto value
 	IsEmulated  bool     // whether option is emulated
 	IsAdvanced  bool     // whether option is advanced
-	index       int
+	index       int      // internal option index
 }
 
 type autoType int
