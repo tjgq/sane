@@ -404,7 +404,9 @@ func (c *Conn) Read(b []byte) (int, error) {
 	return int(n), nil
 }
 
-// ReadFrame reads a whole frame.
+// ReadFrame reads and returns a whole frame.
+//
+// It automatically calls Start before reading, and Cancel when it's done.
 func (c *Conn) ReadFrame() (*Frame, error) {
 	if err := c.Start(); err != nil {
 		return nil, err
