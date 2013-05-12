@@ -78,7 +78,7 @@ type Option struct {
 	Size        int      // option size
 	StrConstr   []string // constraint for string-valued options
 	IntConstr   []int    // constraint for integer-valued options
-	RangeConstr Range    // constraint for range-valued option
+	RangeConstr *Range   // constraint for range-valued option
 	index       int
 }
 
@@ -215,7 +215,7 @@ func (c *Conn) Start() error {
 
 func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	r := (*C.SANE_Range)(unsafe.Pointer(&d.constraint))
-	o.RangeConstr = Range{int(r.min), int(r.max), int(r.quant)}
+	o.RangeConstr = &Range{int(r.min), int(r.max), int(r.quant)}
 }
 
 func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
