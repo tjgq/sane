@@ -282,8 +282,10 @@ func (c *Conn) Options() (opts []Option) {
 func (c *Conn) GetOption(name string) (val interface{}, err error) {
 	for _, o := range c.Options() {
 		if o.Name == name {
-			v := make([]byte, o.Size)
-			p := unsafe.Pointer(&v[0])
+			var p unsafe.Pointer
+			if o.Size > 0 {
+				p = unsafe.Pointer(&make([]byte, o.Size)[0])
+			}
 			s := C.sane_control_option(c.handle, C.SANE_Int(o.index),
 				C.SANE_ACTION_GET_VALUE, p, nil)
 			if s != C.SANE_STATUS_GOOD {
