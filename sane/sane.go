@@ -76,9 +76,9 @@ type Option struct {
 	Type        Type     // option type
 	Unit        Unit     // units
 	Size        int      // option size
-	StrConstr   []string // constraint for string-valued options
-	IntConstr   []int    // constraint for integer-valued options
-	RangeConstr *Range   // constraint for range-valued option
+	StrConstr   []string // constraint set for string-valued option
+	IntConstr   []int    // constraint set for integer-valued option
+	RangeConstr *Range   // constraint range for integer-valued option
 	IsActive    bool     // whether option is active
 	IsSettable  bool     // whether option can be set
 	IsAutomatic bool     // whether option has an auto value
