@@ -6,12 +6,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"image/png"
 	"os"
 	"path"
 	"sane"
+	"strconv"
 	"strings"
 )
 
@@ -22,13 +22,6 @@ var unitName = map[sane.Unit]string{
 	sane.UNIT_DPI:         "dots per inch",
 	sane.UNIT_PERCENT:     "percent",
 	sane.UNIT_MICROSECOND: "microseconds",
-}
-
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 func print(f string, v ...interface{}) {
@@ -127,44 +120,59 @@ func printOptions(c *sane.Conn) {
 	}
 }
 
-func parseOptions(c *sane.Conn, args []string) error {
-	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-	boolOpt := make(map[string]*bool)
-	intOpt := make(map[string]*int)
-	strOpt := make(map[string]*string)
-	for _, o := range c.Options() {
-		switch o.Type {
-		case sane.TYPE_BOOL:
-			boolOpt[o.Name] = fs.Bool(o.Name, false, "")
-		case sane.TYPE_INT, sane.TYPE_FIXED:
-			intOpt[o.Name] = fs.Int(o.Name, 0, "")
-		case sane.TYPE_STRING:
-			strOpt[o.Name] = fs.String(o.Name, "", "")
+func findOption(opts []sane.Option, name string) (*sane.Option, error) {
+	for _, o := range opts {
+		if o.Name == name {
+			return &o, nil
 		}
 	}
-	fs.Usage = func() {} // don't print usage notice on parse error
-	if err := fs.Parse(args); err != nil {
-		return err
+	return nil, fmt.Errorf("no such option")
+}
+
+func parseBool(s string) (interface{}, error) {
+	if s == "yes" || s == "true" || s == "1" {
+		return true, nil
 	}
-	fs.Visit(func(f *flag.Flag) {
-		for _, o := range c.Options() {
-			if o.Name == f.Name {
-				var err error
-				switch o.Type {
-				case sane.TYPE_BOOL:
-					_, err = c.SetOption(o.Name, *boolOpt[o.Name])
-				case sane.TYPE_INT, sane.TYPE_FIXED:
-					_, err = c.SetOption(o.Name, *intOpt[o.Name])
-				case sane.TYPE_STRING:
-					_, err = c.SetOption(o.Name, *strOpt[o.Name])
+	if s == "no" || s == "false" || s == "0" {
+		return false, nil
+	}
+	return nil, fmt.Errorf("not a boolean value")
+}
+
+func parseOptions(c *sane.Conn, args []string) error {
+	invalidArg := fmt.Errorf("invalid argument")
+	if len(args)%2 != 0 {
+		return invalidArg // expect option/value pairs
+	}
+	for i := 0; i < len(args); i += 2 {
+		if args[i][0] != '-' || args[i+1][0] == '-' {
+			return invalidArg
+		}
+		o, err := findOption(c.Options(), args[i][1:])
+		if err != nil {
+			return invalidArg // no such option
+		}
+		var v interface{}
+		if o.IsAutomatic && args[i+1] == "auto" {
+			v = sane.Auto // set to auto value
+		} else {
+			switch o.Type {
+			case sane.TYPE_BOOL:
+				if v, err = parseBool(args[i+1]); err != nil {
+					return invalidArg // not a bool
 				}
-				if err != nil {
-					die(err)
+			case sane.TYPE_INT, sane.TYPE_FIXED:
+				if v, err = strconv.Atoi(args[i+1]); err != nil {
+					return invalidArg // not an int
 				}
-				return
+			case sane.TYPE_STRING:
+				v = args[i+1]
 			}
 		}
-	})
+		if _, err := c.SetOption(o.Name, v); err != nil {
+			return err // can't set option
+		}
+	}
 	return nil
 }
 
@@ -207,8 +215,6 @@ func die(v ...interface{}) {
 }
 
 func main() {
-	var err error
-
 	if len(os.Args) < 3 {
 		help()
 		os.Exit(1)
@@ -227,7 +233,7 @@ func main() {
 	defer c.Close()
 
 	if err := parseOptions(c, os.Args[3:]); err != nil {
-		die()
+		die(err)
 	}
 
 	img, err := c.ReadImage()
@@ -235,7 +241,7 @@ func main() {
 		die(err)
 	}
 
-	if err = png.Encode(f, img); err != nil {
+	if err := png.Encode(f, img); err != nil {
 		die(err)
 	}
 
