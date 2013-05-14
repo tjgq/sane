@@ -176,9 +176,8 @@ func strFromSane(s C.SANE_String_Const) string {
 }
 
 func strToSane(s string) C.SANE_String_Const {
-	str := make([]byte, len(s)+1)
+	str := make([]byte, len(s)+1) // +1 for null terminator
 	copy(str, s)
-	str[len(s)] = byte(0)
 	return C.SANE_String_Const(unsafe.Pointer(&str[0]))
 }
 
@@ -335,7 +334,7 @@ func fillOpt(o Option, val interface{}, v []byte) error {
 			return fmt.Errorf("sane: option %s expects string arg", o.Name)
 		}
 		copy(v, val.(string))
-		v[cap(v)-1] = byte(0)
+		v[len(v)-1] = byte(0) // ensure null terminator when len(s) == len(v)
 	}
 	return nil
 }
