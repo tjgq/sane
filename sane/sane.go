@@ -17,9 +17,9 @@ package sane
 import "C"
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"unsafe"
 )
 
@@ -430,8 +430,13 @@ func (c *Conn) ReadFrame() (*Frame, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadAll(c)
-	if err != nil {
+	data := new(bytes.Buffer)
+	if p.Lines > 0 {
+		// Preallocate buffer with expected size
+		data = bytes.NewBuffer(make([]byte, 0, p.Lines*p.BytesPerLine))
+	}
+
+	if _, err := data.ReadFrom(c); err != nil {
 		return nil, err
 	}
 
@@ -443,11 +448,11 @@ func (c *Conn) ReadFrame() (*Frame, error) {
 	return &Frame{
 		Format:       p.Format,
 		Width:        p.PixelsPerLine,
-		Height:       len(data) / p.BytesPerLine, // p.Lines is unreliable
+		Height:       data.Len() / p.BytesPerLine, // p.Lines is unreliable
 		Channels:     nch,
 		Depth:        p.Depth,
 		bytesPerLine: p.BytesPerLine,
-		data:         data}, nil
+		data:         data.Bytes()}, nil
 }
 
 // Cancel cancels the currently pending operation as soon as possible.
