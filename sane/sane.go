@@ -218,7 +218,7 @@ func (c *Conn) Start() error {
 }
 
 func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
-	r := (*C.SANE_Range)(unsafe.Pointer(&d.constraint))
+	r := *(**C.SANE_Range)(unsafe.Pointer(&d.constraint))
 	o.RangeConstr = &Range{int(r.min), int(r.max), int(r.quant)}
 }
 
