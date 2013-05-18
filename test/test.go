@@ -76,7 +76,10 @@ func printStrList(l []string) {
 
 func printRange(r *sane.Range) {
 	if r != nil {
-		print(" %d..%d (in steps of %d)", r.Min, r.Max, r.Quant)
+		print(" %d..%d", r.Min, r.Max)
+		if r.Quant != 0 {
+			print(" in steps of %d", r.Quant)
+		}
 	}
 }
 
