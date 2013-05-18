@@ -65,7 +65,8 @@ func printConstrSet(o sane.Option) {
 func printConstrRange(o sane.Option) {
 	if o.ConstrRange != nil {
 		print(" %v..%v", o.ConstrRange.Min, o.ConstrRange.Max)
-		if o.ConstrRange.Quant != 0 {
+		if (o.Type == sane.TYPE_INT && o.ConstrRange.Quant != 0) ||
+			(o.Type == sane.TYPE_FLOAT && o.ConstrRange.Quant != 0.0) {
 			print(" in steps of %v", o.ConstrRange.Quant)
 		}
 	}
@@ -151,9 +152,13 @@ func parseOptions(c *sane.Conn, args []string) error {
 				if v, err = parseBool(args[i+1]); err != nil {
 					return invalidArg // not a bool
 				}
-			case sane.TYPE_INT, sane.TYPE_FIXED:
+			case sane.TYPE_INT:
 				if v, err = strconv.Atoi(args[i+1]); err != nil {
 					return invalidArg // not an int
+				}
+			case sane.TYPE_FLOAT:
+				if v, err = strconv.ParseFloat(args[i+1], 64); err != nil {
+					return invalidArg // not a float
 				}
 			case sane.TYPE_STRING:
 				v = args[i+1]
