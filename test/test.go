@@ -103,19 +103,6 @@ func printOption(o sane.Option, v interface{}) {
 	printWrapped(o.Desc, 8, 70)
 }
 
-func printOptions(c *sane.Conn) {
-	lastGroup := ""
-	print("Available options for device %s:\n", c.Device)
-	for _, o := range c.Options() {
-		if o.Group != lastGroup {
-			print("  %s:\n", o.Group)
-			lastGroup = o.Group
-		}
-		v, _ := c.GetOption(o.Name)
-		printOption(o, v)
-	}
-}
-
 func findOption(opts []sane.Option, name string) (*sane.Option, error) {
 	for _, o := range opts {
 		if o.Name == name {
@@ -190,21 +177,68 @@ func openDevice(name string) (*sane.Conn, error) {
 	return nil, fmt.Errorf("no device named %s", name)
 }
 
-func help() {
-	print("Usage: %s <device-name> <output-file> [OPTIONS...]\n\n", path.Base(os.Args[0]))
-
+func listDevices() {
 	devs, _ := sane.Devices()
 	if len(devs) == 0 {
 		print("No available devices.\n")
-		return
+	}
+	for _, d := range devs {
+		print("Device %s is a %s %s %s\n", d.Name, d.Vendor, d.Model, d.Type)
+	}
+}
+
+func showOptions(name string) {
+	c, err := openDevice(name)
+	if err != nil {
+		die(err)
+	}
+	defer c.Close()
+
+	lastGroup := ""
+	print("Options for device %s:\n", c.Device)
+	for _, o := range c.Options() {
+		if o.Group != lastGroup {
+			print("  %s:\n", o.Group)
+			lastGroup = o.Group
+		}
+		v, _ := c.GetOption(o.Name)
+		printOption(o, v)
+	}
+}
+
+func doScan(deviceName string, fileName string, optargs []string) {
+	f, err := os.Create(fileName)
+	if err != nil {
+		die(err)
+	}
+	defer f.Close()
+
+	c, err := openDevice(deviceName)
+	if err != nil {
+		die(err)
+	}
+	defer c.Close()
+
+	if err := parseOptions(c, optargs); err != nil {
+		die(err)
 	}
 
-	for _, d := range devs {
-		if c, err := sane.Open(d.Name); err == nil {
-			printOptions(c)
-			c.Close()
-		}
+	img, err := c.ReadImage()
+	if err != nil {
+		die(err)
 	}
+
+	if err := png.Encode(f, img); err != nil {
+		die(err)
+	}
+}
+
+func usage() {
+	exeName := path.Base(os.Args[0])
+	print("Usage: %s list\n", exeName)
+	print("       %s show <device-name>\n", exeName)
+	print("       %s scan <device-name> <output-file> [OPTIONS...]\n", exeName)
+	os.Exit(1)
 }
 
 func die(v ...interface{}) {
@@ -220,34 +254,23 @@ func main() {
 	}
 	defer sane.Exit()
 
-	if len(os.Args) < 3 {
-		help()
-		os.Exit(1)
+	if len(os.Args) < 2 {
+		usage()
 	}
 
-	f, err := os.Create(os.Args[2])
-	if err != nil {
-		die(err)
-	}
-	defer f.Close()
-
-	c, err := openDevice(os.Args[1])
-	if err != nil {
-		die(err)
-	}
-	defer c.Close()
-
-	if err := parseOptions(c, os.Args[3:]); err != nil {
-		die(err)
-	}
-
-	img, err := c.ReadImage()
-	if err != nil {
-		die(err)
-	}
-
-	if err := png.Encode(f, img); err != nil {
-		die(err)
+	switch os.Args[1] {
+	case "list":
+		listDevices()
+	case "show":
+		if len(os.Args) != 3 {
+			usage()
+		}
+		showOptions(os.Args[2])
+	case "scan":
+		if len(os.Args) < 4 {
+			usage()
+		}
+		doScan(os.Args[2], os.Args[3], os.Args[4:])
 	}
 
 	os.Exit(0)
