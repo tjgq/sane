@@ -44,7 +44,7 @@ func printWrapped(text string, indent, width int) {
 			} else {
 				print(" %s", word)
 			}
-			pos += len(word)
+			pos += len(word) + 1
 		}
 		print("\n")
 	}
