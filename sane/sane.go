@@ -224,7 +224,7 @@ func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
 
 func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := *(**C.SANE_Word)(unsafe.Pointer(&d.constraint))
-	for i, n := 1, int(C.nth_word(p, C.int(0))); i < n; i++ {
+	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
 		o.IntConstr = append(o.IntConstr, int(C.nth_word(p, C.int(i))))
 	}
 }
