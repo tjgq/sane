@@ -210,6 +210,11 @@ func die(v ...interface{}) {
 }
 
 func main() {
+	if err := sane.Init(); err != nil {
+		die(err)
+	}
+	defer sane.Exit()
+
 	if len(os.Args) < 3 {
 		help()
 		os.Exit(1)

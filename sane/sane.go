@@ -188,6 +188,20 @@ func floatToSane(f float64) C.SANE_Fixed {
 	return C.SANE_Fixed(f * (1 << C.SANE_FIXED_SCALE_SHIFT))
 }
 
+// Init must be called before the package can be used.
+func Init() error {
+	if s := C.sane_init(nil, nil); s != C.SANE_STATUS_GOOD {
+		return Error(s)
+	}
+	return nil
+}
+
+// Exit releases all resources in use, closing any open connections. The
+// package cannot be used after Exit returns and before Init is called again.
+func Exit() {
+	C.sane_exit()
+}
+
 // Devices lists all available devices.
 func Devices() (devs []Device, err error) {
 	var p **C.SANE_Device
@@ -513,10 +527,4 @@ func (f *Frame) SampleAt(x, y, ch int) uint8 {
 		return uint8(f.data[f.bytesPerLine*y+f.Channels*x+ch])
 	}
 	return 0xFF // TODO: support other depths
-}
-
-func init() {
-	if C.sane_init(nil, nil) != C.SANE_STATUS_GOOD {
-		panic("sane: can't init")
-	}
 }
