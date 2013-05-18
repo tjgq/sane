@@ -50,35 +50,23 @@ func printWrapped(text string, indent, width int) {
 	}
 }
 
-func printIntList(l []int) {
+func printConstrSet(o sane.Option) {
 	first := true
-	for _, i := range l {
+	for _, v := range o.ConstrSet {
 		if first {
-			print(" %d", i)
+			print(" %v", v)
 			first = false
 		} else {
-			print("|%d", i)
+			print("|%v", v)
 		}
 	}
 }
 
-func printStrList(l []string) {
-	first := true
-	for _, s := range l {
-		if first {
-			print(" %s", s)
-			first = false
-		} else {
-			print("|%s", s)
-		}
-	}
-}
-
-func printRange(r *sane.Range) {
-	if r != nil {
-		print(" %d..%d", r.Min, r.Max)
-		if r.Quant != 0 {
-			print(" in steps of %d", r.Quant)
+func printConstrRange(o sane.Option) {
+	if o.ConstrRange != nil {
+		print(" %v..%v", o.ConstrRange.Min, o.ConstrRange.Max)
+		if o.ConstrRange.Quant != 0 {
+			print(" in steps of %v", o.ConstrRange.Quant)
 		}
 	}
 }
@@ -88,9 +76,8 @@ func printOption(o sane.Option, v interface{}) {
 	print("    -%s", o.Name)
 
 	// Print constraints
-	printIntList(o.IntConstr)
-	printStrList(o.StrConstr)
-	printRange(o.RangeConstr)
+	printConstrSet(o)
+	printConstrRange(o)
 
 	// Print current value
 	if v != nil {

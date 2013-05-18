@@ -63,28 +63,27 @@ type Info struct {
 }
 
 type Range struct {
-	Min   int // minimum value
-	Max   int // maximum value
-	Quant int // quantization step
+	Min   interface{} // minimum value
+	Max   interface{} // maximum value
+	Quant interface{} // quantization step
 }
 
 type Option struct {
-	Name        string   // option name
-	Group       string   // option group
-	Title       string   // option title
-	Desc        string   // option description
-	Type        Type     // option type
-	Unit        Unit     // units
-	Size        int      // option size
-	StrConstr   []string // constraint set for string-valued option
-	IntConstr   []int    // constraint set for integer-valued option
-	RangeConstr *Range   // constraint range for integer-valued option
-	IsActive    bool     // whether option is active
-	IsSettable  bool     // whether option can be set
-	IsAutomatic bool     // whether option has an auto value
-	IsEmulated  bool     // whether option is emulated
-	IsAdvanced  bool     // whether option is advanced
-	index       int      // internal option index
+	Name        string        // option name
+	Group       string        // option group
+	Title       string        // option title
+	Desc        string        // option description
+	Type        Type          // option type
+	Unit        Unit          // units
+	Size        int           // option size
+	ConstrSet   []interface{} // constraint set
+	ConstrRange *Range        // constraint range
+	IsActive    bool          // whether option is active
+	IsSettable  bool          // whether option can be set
+	IsAutomatic bool          // whether option has an auto value
+	IsEmulated  bool          // whether option is emulated
+	IsAdvanced  bool          // whether option is advanced
+	index       int           // internal option index
 }
 
 type autoType int
@@ -219,20 +218,22 @@ func (c *Conn) Start() error {
 
 func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	r := *(**C.SANE_Range)(unsafe.Pointer(&d.constraint))
-	o.RangeConstr = &Range{int(r.min), int(r.max), int(r.quant)}
+	o.ConstrRange = &Range{int(r.min), int(r.max), int(r.quant)}
 }
 
 func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := *(**C.SANE_Word)(unsafe.Pointer(&d.constraint))
 	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
-		o.IntConstr = append(o.IntConstr, int(C.nth_word(p, C.int(i))))
+		i := int(C.nth_word(p, C.int(i)))
+		o.ConstrSet = append(o.ConstrSet, interface{}(i))
 	}
 }
 
 func parseStrConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := *(**C.SANE_String_Const)(unsafe.Pointer(&d.constraint))
 	for n := 0; C.nth_string(p, C.int(n)) != nil; n++ {
-		o.StrConstr = append(o.StrConstr, strFromSane(C.nth_string(p, C.int(n))))
+		s := strFromSane(C.nth_string(p, C.int(n)))
+		o.ConstrSet = append(o.ConstrSet, interface{}(s))
 	}
 }
 
