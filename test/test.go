@@ -50,24 +50,30 @@ func printWrapped(text string, indent, width int) {
 	}
 }
 
-func printConstrSet(o sane.Option) {
+func printConstraints(o sane.Option) {
 	first := true
-	for _, v := range o.ConstrSet {
-		if first {
-			print(" %v", v)
-			first = false
-		} else {
-			print("|%v", v)
-		}
+	if o.IsAutomatic {
+		print(" auto")
+		first = false
 	}
-}
-
-func printConstrRange(o sane.Option) {
 	if o.ConstrRange != nil {
-		print(" %v..%v", o.ConstrRange.Min, o.ConstrRange.Max)
+		if first {
+			print(" %v..%v", o.ConstrRange.Min, o.ConstrRange.Max)
+		} else {
+			print("|%v..%v", o.ConstrRange.Min, o.ConstrRange.Max)
+		}
 		if (o.Type == sane.TYPE_INT && o.ConstrRange.Quant != 0) ||
 			(o.Type == sane.TYPE_FLOAT && o.ConstrRange.Quant != 0.0) {
 			print(" in steps of %v", o.ConstrRange.Quant)
+		}
+	} else {
+		for _, v := range o.ConstrSet {
+			if first {
+				print(" %v", v)
+				first = false
+			} else {
+				print("|%v", v)
+			}
 		}
 	}
 }
@@ -77,8 +83,7 @@ func printOption(o sane.Option, v interface{}) {
 	print("    -%s", o.Name)
 
 	// Print constraints
-	printConstrSet(o)
-	printConstrRange(o)
+	printConstraints(o)
 
 	// Print current value
 	if v != nil {
