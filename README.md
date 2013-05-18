@@ -23,7 +23,8 @@ Further information about the SANE API can be found at the
 ## BUGS
 
 Very incomplete testing, due to the fact that I only have a single device
-to test with. Lots of room for improvement; see `TODO` for a partial list.
+to test with. Incomplete API coverage; refer to the bug tracker for the missing
+stuff.
 
 ## LICENSE
 
