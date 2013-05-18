@@ -239,6 +239,7 @@ func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
 
 func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := *(**C.SANE_Word)(unsafe.Pointer(&d.constraint))
+	// First word is number of remaining words in array.
 	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
 		i := int(C.nth_word(p, C.int(i)))
 		o.ConstrSet = append(o.ConstrSet, interface{}(i))
@@ -247,6 +248,7 @@ func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
 
 func parseFloatConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := *(**C.SANE_Word)(unsafe.Pointer(&d.constraint))
+	// First word is number of remaining words in array.
 	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
 		f := floatFromSane(C.SANE_Fixed(C.nth_word(p, C.int(i))))
 		o.ConstrSet = append(o.ConstrSet, interface{}(f))
@@ -255,6 +257,7 @@ func parseFloatConstr(d *C.SANE_Option_Descriptor, o *Option) {
 
 func parseStrConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := *(**C.SANE_String_Const)(unsafe.Pointer(&d.constraint))
+	// Array is null-terminated.
 	for n := 0; C.nth_string(p, C.int(n)) != nil; n++ {
 		s := strFromSane(C.nth_string(p, C.int(n)))
 		o.ConstrSet = append(o.ConstrSet, interface{}(s))
