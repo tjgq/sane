@@ -271,6 +271,8 @@ func main() {
 			usage()
 		}
 		doScan(os.Args[2], os.Args[3], os.Args[4:])
+	default:
+		usage()
 	}
 
 	os.Exit(0)
