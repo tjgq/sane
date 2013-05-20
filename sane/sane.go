@@ -457,9 +457,6 @@ func (c *Conn) Read(b []byte) (int, error) {
 // Cancel cancels the currently pending operation as soon as possible.
 // It merely initiates the cancellation; cancellation is only guaranteed to
 // have occurred when the cancelled operation returns.
-//
-// Note that Cancel must be called after reading an entire frame successfully,
-// before another frame can be read.
 func (c *Conn) Cancel() {
 	C.sane_cancel(c.handle)
 }
