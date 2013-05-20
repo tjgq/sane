@@ -19,14 +19,7 @@ type Frame struct {
 }
 
 // ReadFrame reads and returns a whole frame.
-//
-// It automatically calls Start before reading, and Cancel when it's done.
 func (c *Conn) ReadFrame() (*Frame, error) {
-	if err := c.Start(); err != nil {
-		return nil, err
-	}
-	defer c.Cancel()
-
 	p, err := c.Params()
 	if err != nil {
 		return nil, err
