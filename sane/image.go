@@ -14,7 +14,7 @@ func grayImage(f *Frame) image.Image {
 	img := image.NewGray(image.Rect(0, 0, f.Width, f.Height))
 	for j := 0; j < f.Height; j++ {
 		for i := 0; i < f.Width; i++ {
-			c := f.SampleAt(i, j, 0)
+			c := f.At(i, j, 0)
 			img.Set(i, j, color.Gray{c})
 		}
 	}
@@ -25,9 +25,9 @@ func rgbImage(red, green, blue *Frame) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, red.Width, red.Height))
 	for j := 0; j < red.Height; j++ {
 		for i := 0; i < red.Width; i++ {
-			r := red.SampleAt(i, j, 0)
-			g := blue.SampleAt(i, j, 0)
-			b := green.SampleAt(i, j, 0)
+			r := red.At(i, j, 0)
+			g := blue.At(i, j, 0)
+			b := green.At(i, j, 0)
 			img.Set(i, j, color.RGBA{r, g, b, 255})
 		}
 	}
@@ -38,9 +38,9 @@ func interleavedImage(f *Frame) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, f.Width, f.Height))
 	for j := 0; j < f.Height; j++ {
 		for i := 0; i < f.Width; i++ {
-			r := f.SampleAt(i, j, 0)
-			g := f.SampleAt(i, j, 1)
-			b := f.SampleAt(i, j, 2)
+			r := f.At(i, j, 0)
+			g := f.At(i, j, 1)
+			b := f.At(i, j, 2)
 			img.Set(i, j, color.RGBA{r, g, b, 255})
 		}
 	}

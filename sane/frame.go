@@ -57,8 +57,8 @@ func (c *Conn) ReadFrame() (*Frame, error) {
 		data:         data.Bytes()}, nil
 }
 
-// SampleAt returns the sample at coordinates (x,y) for channel ch.
-func (f *Frame) SampleAt(x, y, ch int) uint8 {
+// At returns the sample at coordinates (x,y) for channel ch.
+func (f *Frame) At(x, y, ch int) uint8 {
 	if f.Depth == 8 {
 		return uint8(f.data[f.bytesPerLine*y+f.Channels*x+ch])
 	}
