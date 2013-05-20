@@ -10,67 +10,76 @@ import (
 	"image/color"
 )
 
-func grayImage(f *Frame) image.Image {
-	img := image.NewGray(image.Rect(0, 0, f.Width, f.Height))
-	for j := 0; j < f.Height; j++ {
-		for i := 0; i < f.Width; i++ {
-			c := f.At(i, j, 0)
-			img.Set(i, j, color.Gray{c})
-		}
-	}
-	return img
+var opaque = uint8(0xff) // no transparency 8-bit alpha value
+
+// Image is a scanned image, corresponding to one or more frames.
+//
+// It implements the image.Image interface.
+type Image struct {
+	frames []*Frame
 }
 
-func rgbImage(red, green, blue *Frame) image.Image {
-	img := image.NewRGBA(image.Rect(0, 0, red.Width, red.Height))
-	for j := 0; j < red.Height; j++ {
-		for i := 0; i < red.Width; i++ {
-			r := red.At(i, j, 0)
-			g := blue.At(i, j, 0)
-			b := green.At(i, j, 0)
-			img.Set(i, j, color.RGBA{r, g, b, 255})
-		}
-	}
-	return img
+// Bounds returns the domain for which At returns valid pixels.
+func (i *Image) Bounds() image.Rectangle {
+	f := i.frames[0]
+	return image.Rect(0, 0, f.Width, f.Height)
 }
 
-func interleavedImage(f *Frame) image.Image {
-	img := image.NewRGBA(image.Rect(0, 0, f.Width, f.Height))
-	for j := 0; j < f.Height; j++ {
-		for i := 0; i < f.Width; i++ {
-			r := f.At(i, j, 0)
-			g := f.At(i, j, 1)
-			b := f.At(i, j, 2)
-			img.Set(i, j, color.RGBA{r, g, b, 255})
-		}
+// ColorModel returns the Image's color model.
+func (i *Image) ColorModel() color.Model {
+	if i.frames[0].Format == FRAME_GRAY {
+		return color.GrayModel
+	} else {
+		return color.RGBAModel
 	}
-	return img
 }
 
-// ReadImage reads a whole image, possibly corresponding to multiple frames.
-func (c *Conn) ReadImage() (image.Image, error) {
-	f, err := c.ReadFrame()
-	if err != nil {
-		return nil, err
+// At returns the color of the pixel at (x, y).
+func (i *Image) At(x, y int) color.Color {
+	if !(image.Point{x, y}.In(i.Bounds())) {
+		return color.RGBA{}
 	}
-	switch f.Format {
-	case FRAME_GRAY:
-		return grayImage(f), nil
-	case FRAME_RGB:
-		return interleavedImage(f), nil
-	case FRAME_RED:
-		r := f
-		g, err := c.ReadFrame()
+	fs := i.frames
+	switch {
+	case len(fs) == 3:
+		// non-interleaved RGB
+		return color.RGBA{
+			fs[0].At(x, y, 0),
+			fs[1].At(x, y, 0),
+			fs[2].At(x, y, 0),
+			opaque}
+	case fs[0].Format == FRAME_RGB:
+		// interleaved RGB
+		return color.RGBA{
+			fs[0].At(x, y, 0),
+			fs[0].At(x, y, 1),
+			fs[0].At(x, y, 2),
+			opaque}
+	default:
+		// grayscale
+		return color.Gray{fs[0].At(x, y, 0)}
+	}
+}
+
+// ReadImage reads an image from the connection.
+func (c *Conn) ReadImage() (*Image, error) {
+	frames := make([]*Frame, 0, 3)
+	done := false
+	for i := 0; !done && i < 3; i++ {
+		f, err := c.ReadFrame()
 		if err != nil {
 			return nil, err
 		}
-		b, err := c.ReadFrame()
-		if err != nil {
-			return nil, err
-		}
-		if g.Format == FRAME_GREEN && b.Format == FRAME_BLUE {
-			return rgbImage(r, g, b), nil
+		frames = append(frames, f)
+		switch {
+		case i == 0 && (f.Format == FRAME_GRAY || f.Format == FRAME_RGB):
+			done = true // single-frame image
+		case (i == 0 && f.Format != FRAME_RED) ||
+			(i == 1 && f.Format != FRAME_GREEN) ||
+			(i == 2 && f.Format != FRAME_BLUE):
+			// Make sure red/green/blue appear in the right order
+			return nil, fmt.Errorf("sane: unexpected frame type %d", f.Format)
 		}
 	}
-	return nil, fmt.Errorf("sane: unexpected frame type %d", int(f.Format))
+	return &Image{frames}, nil
 }
