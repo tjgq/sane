@@ -425,12 +425,12 @@ func (c *Conn) SetOption(name string, val interface{}) (info Info, err error) {
 // guaranteed to be accurate between the time the scan is started and the time
 // the request is completed or cancelled. Outside that window, they are
 // best-effort estimates for the next frame.
-func (c *Conn) Params() (*Params, error) {
+func (c *Conn) Params() (Params, error) {
 	var p C.SANE_Parameters
 	if s := C.sane_get_parameters(c.handle, &p); s != C.SANE_STATUS_GOOD {
-		return nil, Error(s)
+		return Params{}, Error(s)
 	}
-	return &Params{
+	return Params{
 		Format:        Format(p.format),
 		IsLast:        boolFromSane(p.last_frame),
 		BytesPerLine:  int(p.bytes_per_line),
