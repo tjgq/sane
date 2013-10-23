@@ -164,12 +164,16 @@ func parseOptions(c *sane.Conn, args []string) error {
 }
 
 func openDevice(name string) (*sane.Conn, error) {
+	c, err := sane.Open(name)
+	if err == nil {
+		return c, nil
+	}
+	// Try a substring match over the available devices
 	devs, err := sane.Devices()
 	if err != nil {
 		return nil, err
 	}
 	for _, d := range devs {
-		// A substring of the device name will do
 		if strings.Contains(d.Name, name) {
 			return sane.Open(d.Name)
 		}
