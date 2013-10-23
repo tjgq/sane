@@ -27,7 +27,7 @@ func (i *Image) Bounds() image.Rectangle {
 
 // ColorModel returns the Image's color model.
 func (i *Image) ColorModel() color.Model {
-	if i.frames[0].Format == FRAME_GRAY {
+	if i.frames[0].Format == FrameGray {
 		return color.GrayModel
 	} else {
 		return color.RGBAModel
@@ -48,7 +48,7 @@ func (i *Image) At(x, y int) color.Color {
 			fs[1].At(x, y, 0),
 			fs[2].At(x, y, 0),
 			opaque}
-	case fs[0].Format == FRAME_RGB:
+	case fs[0].Format == FrameRgb:
 		// interleaved RGB
 		return color.RGBA{
 			fs[0].At(x, y, 0),
@@ -77,11 +77,11 @@ func (c *Conn) ReadImage() (*Image, error) {
 		}
 		frames = append(frames, f)
 		switch {
-		case i == 0 && (f.Format == FRAME_GRAY || f.Format == FRAME_RGB):
+		case i == 0 && (f.Format == FrameGray || f.Format == FrameRgb):
 			done = true // single-frame image
-		case (i == 0 && f.Format != FRAME_RED) ||
-			(i == 1 && f.Format != FRAME_GREEN) ||
-			(i == 2 && f.Format != FRAME_BLUE):
+		case (i == 0 && f.Format != FrameRed) ||
+			(i == 1 && f.Format != FrameGreen) ||
+			(i == 2 && f.Format != FrameBlue):
 			// Make sure red/green/blue appear in the right order
 			return nil, fmt.Errorf("sane: unexpected frame type %d", f.Format)
 		}

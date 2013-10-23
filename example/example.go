@@ -16,12 +16,12 @@ import (
 )
 
 var unitName = map[sane.Unit]string{
-	sane.UNIT_PIXEL:       "pixels",
-	sane.UNIT_BIT:         "bits",
-	sane.UNIT_MM:          "millimetres",
-	sane.UNIT_DPI:         "dots per inch",
-	sane.UNIT_PERCENT:     "percent",
-	sane.UNIT_MICROSECOND: "microseconds",
+	sane.UnitPixel:   "pixels",
+	sane.UnitBit:     "bits",
+	sane.UnitMm:      "millimetres",
+	sane.UnitDpi:     "dots per inch",
+	sane.UnitPercent: "percent",
+	sane.UnitMsec:    "microseconds",
 }
 
 func print(f string, v ...interface{}) {
@@ -62,8 +62,8 @@ func printConstraints(o sane.Option) {
 		} else {
 			print("|%v..%v", o.ConstrRange.Min, o.ConstrRange.Max)
 		}
-		if (o.Type == sane.TYPE_INT && o.ConstrRange.Quant != 0) ||
-			(o.Type == sane.TYPE_FLOAT && o.ConstrRange.Quant != 0.0) {
+		if (o.Type == sane.TypeInt && o.ConstrRange.Quant != 0) ||
+			(o.Type == sane.TypeFloat && o.ConstrRange.Quant != 0.0) {
 			print(" in steps of %v", o.ConstrRange.Quant)
 		}
 	} else {
@@ -140,19 +140,19 @@ func parseOptions(c *sane.Conn, args []string) error {
 			v = sane.Auto // set to auto value
 		} else {
 			switch o.Type {
-			case sane.TYPE_BOOL:
+			case sane.TypeBool:
 				if v, err = parseBool(args[i+1]); err != nil {
 					return invalidArg // not a bool
 				}
-			case sane.TYPE_INT:
+			case sane.TypeInt:
 				if v, err = strconv.Atoi(args[i+1]); err != nil {
 					return invalidArg // not an int
 				}
-			case sane.TYPE_FLOAT:
+			case sane.TypeFloat:
 				if v, err = strconv.ParseFloat(args[i+1], 64); err != nil {
 					return invalidArg // not a float
 				}
-			case sane.TYPE_STRING:
+			case sane.TypeString:
 				v = args[i+1]
 			}
 		}

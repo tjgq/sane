@@ -36,7 +36,7 @@ func (c *Conn) ReadFrame() (*Frame, error) {
 	}
 
 	nch := 1
-	if p.Format == FRAME_RGB {
+	if p.Format == FrameRgb {
 		nch = 3
 	}
 

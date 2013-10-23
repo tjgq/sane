@@ -25,34 +25,34 @@ import (
 type Type int
 
 const (
-	TYPE_BOOL   Type = C.SANE_TYPE_BOOL
-	TYPE_INT         = C.SANE_TYPE_INT
-	TYPE_FLOAT       = C.SANE_TYPE_FIXED
-	TYPE_STRING      = C.SANE_TYPE_STRING
-	TYPE_BUTTON      = C.SANE_TYPE_BUTTON
-	TYPE_GROUP       = C.SANE_TYPE_GROUP
+	TypeBool   Type = C.SANE_TYPE_BOOL
+	TypeInt         = C.SANE_TYPE_INT
+	TypeFloat       = C.SANE_TYPE_FIXED
+	TypeString      = C.SANE_TYPE_STRING
+	TypeButton      = C.SANE_TYPE_BUTTON
+	TypeGroup       = C.SANE_TYPE_GROUP
 )
 
 type Unit int
 
 const (
-	UNIT_NONE        Unit = C.SANE_UNIT_NONE
-	UNIT_PIXEL            = C.SANE_UNIT_PIXEL
-	UNIT_BIT              = C.SANE_UNIT_BIT
-	UNIT_MM               = C.SANE_UNIT_MM
-	UNIT_DPI              = C.SANE_UNIT_DPI
-	UNIT_PERCENT          = C.SANE_UNIT_PERCENT
-	UNIT_MICROSECOND      = C.SANE_UNIT_MICROSECOND
+	UnitNone    Unit = C.SANE_UNIT_NONE
+	UnitPixel        = C.SANE_UNIT_PIXEL
+	UnitBit          = C.SANE_UNIT_BIT
+	UnitMm           = C.SANE_UNIT_MM
+	UnitDpi          = C.SANE_UNIT_DPI
+	UnitPercent      = C.SANE_UNIT_PERCENT
+	UnitMsec         = C.SANE_UNIT_MICROSECOND
 )
 
 type Format int
 
 const (
-	FRAME_GRAY  Format = C.SANE_FRAME_GRAY
-	FRAME_RGB          = C.SANE_FRAME_RGB
-	FRAME_RED          = C.SANE_FRAME_RED
-	FRAME_GREEN        = C.SANE_FRAME_GREEN
-	FRAME_BLUE         = C.SANE_FRAME_BLUE
+	FrameGray  Format = C.SANE_FRAME_GRAY
+	FrameRgb          = C.SANE_FRAME_RGB
+	FrameRed          = C.SANE_FRAME_RED
+	FrameGreen        = C.SANE_FRAME_GREEN
+	FrameBlue         = C.SANE_FRAME_BLUE
 )
 
 type Info struct {
@@ -111,33 +111,33 @@ type Params struct {
 type Error int
 
 const (
-	STATUS_GOOD          Error = Error(C.SANE_STATUS_GOOD)
-	STATUS_UNSUPPORTED         = Error(C.SANE_STATUS_UNSUPPORTED)
-	STATUS_CANCELLED           = Error(C.SANE_STATUS_CANCELLED)
-	STATUS_DEVICE_BUSY         = Error(C.SANE_STATUS_DEVICE_BUSY)
-	STATUS_INVAL               = Error(C.SANE_STATUS_INVAL)
-	STATUS_EOF                 = Error(C.SANE_STATUS_EOF)
-	STATUS_JAMMED              = Error(C.SANE_STATUS_JAMMED)
-	STATUS_NO_DOCS             = Error(C.SANE_STATUS_NO_DOCS)
-	STATUS_COVER_OPEN          = Error(C.SANE_STATUS_COVER_OPEN)
-	STATUS_IO_ERROR            = Error(C.SANE_STATUS_IO_ERROR)
-	STATUS_NO_MEM              = Error(C.SANE_STATUS_NO_MEM)
-	STATUS_ACCESS_DENIED       = Error(C.SANE_STATUS_ACCESS_DENIED)
+	StatusGood        Error = Error(C.SANE_STATUS_GOOD)
+	StatusUnsupported       = Error(C.SANE_STATUS_UNSUPPORTED)
+	StatusCancelled         = Error(C.SANE_STATUS_CANCELLED)
+	StatusBusy              = Error(C.SANE_STATUS_DEVICE_BUSY)
+	StatusInvalid           = Error(C.SANE_STATUS_INVAL)
+	StatusEof               = Error(C.SANE_STATUS_EOF)
+	StatusJammed            = Error(C.SANE_STATUS_JAMMED)
+	StatusNoDocs            = Error(C.SANE_STATUS_NO_DOCS)
+	StatusCoverOpen         = Error(C.SANE_STATUS_COVER_OPEN)
+	StatusIoError           = Error(C.SANE_STATUS_IO_ERROR)
+	StatusNoMem             = Error(C.SANE_STATUS_NO_MEM)
+	StatusDenied            = Error(C.SANE_STATUS_ACCESS_DENIED)
 )
 
 var errText = map[Error]string{
-	STATUS_GOOD:          "successful",
-	STATUS_UNSUPPORTED:   "operation not supported",
-	STATUS_CANCELLED:     "operation cancelled",
-	STATUS_DEVICE_BUSY:   "device busy",
-	STATUS_INVAL:         "invalid argument",
-	STATUS_EOF:           "no more data",
-	STATUS_JAMMED:        "feeder jammed",
-	STATUS_NO_DOCS:       "feeder empty",
-	STATUS_COVER_OPEN:    "cover open",
-	STATUS_IO_ERROR:      "input/output error",
-	STATUS_NO_MEM:        "out of memory",
-	STATUS_ACCESS_DENIED: "access denied",
+	StatusGood:        "successful",
+	StatusUnsupported: "operation not supported",
+	StatusCancelled:   "operation cancelled",
+	StatusBusy:        "device busy",
+	StatusInvalid:     "invalid argument",
+	StatusEof:         "no more data",
+	StatusJammed:      "feeder jammed",
+	StatusNoDocs:      "feeder empty",
+	StatusCoverOpen:   "cover open",
+	StatusIoError:     "input/output error",
+	StatusNoMem:       "out of memory",
+	StatusDenied:      "access denied",
 }
 
 func (e Error) Error() string {
@@ -230,9 +230,9 @@ func (c *Conn) Start() error {
 func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	r := *(**C.SANE_Range)(unsafe.Pointer(&d.constraint))
 	switch o.Type {
-	case TYPE_INT:
+	case TypeInt:
 		o.ConstrRange = &Range{int(r.min), int(r.max), int(r.quant)}
-	case TYPE_FLOAT:
+	case TypeFloat:
 		o.ConstrRange = &Range{
 			floatFromSane(C.SANE_Fixed(r.min)),
 			floatFromSane(C.SANE_Fixed(r.max)),
@@ -304,7 +304,7 @@ func (c *Conn) Options() (opts []Option) {
 			break
 		}
 		opt := parseOpt(desc)
-		if opt.Type == TYPE_GROUP {
+		if opt.Type == TypeGroup {
 			curgroup = opt.Title
 			continue
 		}
@@ -331,13 +331,13 @@ func (c *Conn) GetOption(name string) (val interface{}, err error) {
 				return nil, Error(s)
 			}
 			switch o.Type {
-			case TYPE_BOOL:
+			case TypeBool:
 				val = interface{}(boolFromSane(*(*C.SANE_Bool)(p)))
-			case TYPE_INT:
+			case TypeInt:
 				val = interface{}(int(*(*C.SANE_Int)(p)))
-			case TYPE_FLOAT:
+			case TypeFloat:
 				val = interface{}(floatFromSane(*(*C.SANE_Fixed)(p)))
-			case TYPE_STRING:
+			case TypeString:
 				val = interface{}(strFromSane(C.SANE_String_Const(p)))
 			}
 			return val, err
@@ -349,25 +349,25 @@ func (c *Conn) GetOption(name string) (val interface{}, err error) {
 func fillOpt(o Option, val interface{}, v []byte) error {
 	p := unsafe.Pointer(&v[0])
 	switch o.Type {
-	case TYPE_BOOL:
+	case TypeBool:
 		if _, ok := val.(bool); !ok {
 			return fmt.Errorf("sane: option %s expects bool arg", o.Name)
 		}
 		q := (*C.SANE_Bool)(p)
 		*q = boolToSane(val.(bool))
-	case TYPE_INT:
+	case TypeInt:
 		if _, ok := val.(int); !ok {
 			return fmt.Errorf("sane: option %s expects int arg", o.Name)
 		}
 		q := (*C.SANE_Int)(p)
 		*q = C.SANE_Int(val.(int))
-	case TYPE_FLOAT:
+	case TypeFloat:
 		if _, ok := val.(float64); !ok {
 			return fmt.Errorf("sane: option %s expects float64 arg", o.Name)
 		}
 		q := (*C.SANE_Fixed)(p)
 		*q = floatToSane(val.(float64))
-	case TYPE_STRING:
+	case TypeString:
 		if _, ok := val.(string); !ok {
 			return fmt.Errorf("sane: option %s expects string arg", o.Name)
 		}
