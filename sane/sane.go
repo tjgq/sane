@@ -291,7 +291,6 @@ func parseOpt(d *C.SANE_Option_Descriptor) (o Option) {
 }
 
 // Options returns a list of available scanning options.
-
 // The list of options usually remains valid until the connection is closed,
 // but setting some options may affect the availability of others.
 func (c *Conn) Options() (opts []Option) {
