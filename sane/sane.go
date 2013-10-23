@@ -30,7 +30,7 @@ const (
 	TypeFloat       = C.SANE_TYPE_FIXED
 	TypeString      = C.SANE_TYPE_STRING
 	TypeButton      = C.SANE_TYPE_BUTTON
-	TypeGroup       = C.SANE_TYPE_GROUP
+	typeGroup       = C.SANE_TYPE_GROUP // internal use only
 )
 
 type Unit int
@@ -304,7 +304,7 @@ func (c *Conn) Options() (opts []Option) {
 			break
 		}
 		opt := parseOpt(desc)
-		if opt.Type == TypeGroup {
+		if opt.Type == typeGroup {
 			curgroup = opt.Title
 			continue
 		}
