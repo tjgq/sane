@@ -8,14 +8,15 @@ In particular, do not rely on the provided API not to change in the future.
 
 ## INSTALLING
 
-Just run `go get github.com/tjgq/go-sane/sane`.
+Just run `go get github.com/tjgq/go-sane/`.
 
 The bindings are generated against `libsane` using `cgo`.
 You will need to have the appropriate development packages installed.
 
 ## USING
 
-There is a sample program in the `test` subdirectory.
+There is a sample program, similar in spirit to the `scanimage` utility shipped with SANE,
+in the `example` subdirectory.
 
 Further information about the SANE API can be found at the
 [SANE Project website](http://www.sane-project.org).
