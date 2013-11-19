@@ -7,10 +7,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/tjgq/go-sane"
 	"image/png"
 	"os"
 	"path"
-	"sane"
 	"strconv"
 	"strings"
 )
