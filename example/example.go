@@ -6,11 +6,16 @@
 package main
 
 import (
+	"code.google.com/p/go.image/tiff"
 	"fmt"
 	"github.com/tjgq/go-sane"
+	"image"
+	"image/jpeg"
 	"image/png"
+	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -22,6 +27,26 @@ var unitName = map[sane.Unit]string{
 	sane.UnitDpi:     "dots per inch",
 	sane.UnitPercent: "percent",
 	sane.UnitMsec:    "microseconds",
+}
+
+type EncodeFunc func(io.Writer, image.Image) error
+
+func pathToEncoder(path string) (EncodeFunc, error) {
+	ext := strings.ToLower(filepath.Ext(path))
+	switch ext {
+	case ".png":
+		return png.Encode, nil
+	case ".jpg", ".jpeg":
+		return func(w io.Writer, m image.Image) error {
+			return jpeg.Encode(w, m, nil)
+		}, nil
+	case ".tif", ".tiff":
+		return func(w io.Writer, m image.Image) error {
+			return tiff.Encode(w, m, nil)
+		}, nil
+	default:
+		return nil, fmt.Errorf("unrecognized extension")
+	}
 }
 
 func print(f string, v ...interface{}) {
@@ -211,6 +236,11 @@ func showOptions(name string) {
 }
 
 func doScan(deviceName string, fileName string, optargs []string) {
+	enc, err := pathToEncoder(fileName)
+	if err != nil {
+		die(err)
+	}
+
 	f, err := os.Create(fileName)
 	if err != nil {
 		die(err)
@@ -232,7 +262,7 @@ func doScan(deviceName string, fileName string, optargs []string) {
 		die(err)
 	}
 
-	if err := png.Encode(f, img); err != nil {
+	if err := enc(f, img); err != nil {
 		die(err)
 	}
 }
