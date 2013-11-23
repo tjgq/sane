@@ -36,19 +36,6 @@ var unitMap = map[Unit]string{
 	UnitMsec:    "milliseconds",
 }
 
-func runTest(t *testing.T, f func(c *Conn)) {
-	if err := Init(); err != nil {
-		t.Fatal("init failed:", err)
-	}
-	defer Exit()
-	c, err := Open(TestDevice)
-	if err != nil {
-		t.Fatal("open failed:", err)
-	}
-	defer c.Close()
-	f(c)
-}
-
 func setOption(t *testing.T, c *Conn, name string, val interface{}) Info {
 	i, err := c.SetOption(name, val)
 	if err != nil {
@@ -57,21 +44,43 @@ func setOption(t *testing.T, c *Conn, name string, val interface{}) Info {
 	return i
 }
 
-func readImage(t *testing.T, c *Conn) (*Image, int, int) {
-	i, err := c.ReadImage()
+func readImage(t *testing.T, c *Conn) *Image {
+	m, err := c.ReadImage()
 	if err != nil {
 		t.Fatal("read image failed:", err)
 	}
-	b := i.Bounds()
+	b := m.Bounds()
 	if b.Min.X != 0 || b.Min.Y != 0 || b.Max.X <= b.Min.X || b.Max.Y <= b.Min.Y {
 		t.Fatal("bad bounds:", b)
 	}
-	return i, b.Max.X, b.Max.Y
+	return m
 }
 
-func TestDevices(t *testing.T) {
-	if _, err := Devices(); err != nil {
-		t.Fatal("list devices failed:", err)
+func checkGray(t *testing.T, m *Image) {
+	if m.ColorModel() != color.GrayModel {
+		t.Fatal("bad color model")
+	}
+	b := m.Bounds()
+	for x := 0; x < b.Max.X; x++ {
+		for y := 0; y < b.Max.Y; y++ {
+			if m.At(x, y) != monoBlack {
+				t.Fatalf("bad pixel at (%d,%d)", x, y)
+			}
+		}
+	}
+}
+
+func checkColor(t *testing.T, m *Image) {
+	if m.ColorModel() != color.RGBAModel {
+		t.Fatal("bad color model")
+	}
+	b := m.Bounds()
+	for x := 0; x < b.Max.X; x++ {
+		for y := 0; y < b.Max.Y; y++ {
+			if m.At(x, y) != colorBlack {
+				t.Fatalf("bad pixel at (%d,%d)", x, y)
+			}
+		}
 	}
 }
 
@@ -96,6 +105,38 @@ func checkOptionType(t *testing.T, o *Option, val interface{}) {
 		}
 	default:
 		t.Errorf("option %s has unexpected type, should be %s", o.Name, typeName)
+	}
+}
+
+func runTest(t *testing.T, f func(c *Conn)) {
+	if err := Init(); err != nil {
+		t.Fatal("init failed:", err)
+	}
+	defer Exit()
+	c, err := Open(TestDevice)
+	if err != nil {
+		t.Fatal("open failed:", err)
+	}
+	defer c.Close()
+	f(c)
+}
+
+func runGrayTest(t *testing.T, f func(c *Conn) *Image) {
+	runTest(t, func(c *Conn) {
+		checkGray(t, f(c))
+	})
+}
+
+func runColorTest(t *testing.T, f func(c *Conn) *Image) {
+	runTest(t, func(c *Conn) {
+		setOption(t, c, "mode", "Color")
+		checkColor(t, f(c))
+	})
+}
+
+func TestDevices(t *testing.T) {
+	if _, err := Devices(); err != nil {
+		t.Fatal("list devices failed:", err)
 	}
 }
 
@@ -125,34 +166,13 @@ func TestOptions(t *testing.T) {
 }
 
 func TestGrayImage(t *testing.T) {
-	runTest(t, func(c *Conn) {
-		i, xMax, yMax := readImage(t, c)
-		if i.ColorModel() != color.GrayModel {
-			t.Fatal("bad color model")
-		}
-		for x := 0; x < xMax; x++ {
-			for y := 0; y < yMax; y++ {
-				if i.At(x, y) != monoBlack {
-					t.Fatalf("bad pixel at (%d,%d)", x, y)
-				}
-			}
-		}
+	runGrayTest(t, func(c *Conn) *Image {
+		return readImage(t, c)
 	})
 }
 
 func TestColorImage(t *testing.T) {
-	runTest(t, func(c *Conn) {
-		_ = setOption(t, c, "mode", "Color")
-		i, xMax, yMax := readImage(t, c)
-		if i.ColorModel() != color.RGBAModel {
-			t.Fatal("bad color model")
-		}
-		for x := 0; x < xMax; x++ {
-			for y := 0; y < yMax; y++ {
-				if i.At(x, y) != colorBlack {
-					t.Fatalf("bad pixel at (%d,%d)", x, y)
-				}
-			}
-		}
+	runColorTest(t, func(c *Conn) *Image {
+		return readImage(t, c)
 	})
 }
