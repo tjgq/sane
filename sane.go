@@ -111,16 +111,16 @@ type Params struct {
 type Error error
 
 var (
-	ErrUnsupported = mkErrorf("operation not supported")
-	ErrCancelled   = mkErrorf("operation cancelled")
-	ErrBusy        = mkErrorf("device busy")
-	ErrInvalid     = mkErrorf("invalid argument")
-	ErrJammed      = mkErrorf("feeder jammed")
-	ErrEmpty       = mkErrorf("feeder empty")
-	ErrCoverOpen   = mkErrorf("cover open")
-	ErrIo          = mkErrorf("input/output error")
-	ErrNoMem       = mkErrorf("out of memory")
-	ErrDenied      = mkErrorf("access denied")
+	ErrUnsupported = fmt.Errorf("operation not supported")
+	ErrCancelled   = fmt.Errorf("operation cancelled")
+	ErrBusy        = fmt.Errorf("device busy")
+	ErrInvalid     = fmt.Errorf("invalid argument")
+	ErrJammed      = fmt.Errorf("feeder jammed")
+	ErrEmpty       = fmt.Errorf("feeder empty")
+	ErrCoverOpen   = fmt.Errorf("cover open")
+	ErrIo          = fmt.Errorf("input/output error")
+	ErrNoMem       = fmt.Errorf("out of memory")
+	ErrDenied      = fmt.Errorf("access denied")
 )
 
 var errMap = map[C.SANE_Status]Error{
@@ -142,13 +142,7 @@ func mkError(s C.SANE_Status) Error {
 	if ok {
 		return err
 	}
-	return mkErrorf("unknown error code %d", int(s))
-}
-
-// mkErrorf is like fmt.Errorf, but prefixes the error message
-// with the package name.
-func mkErrorf(format string, v ...interface{}) Error {
-	return fmt.Errorf("sane: "+format, v...)
+	return fmt.Errorf("unknown error code %d", int(s))
 }
 
 func boolFromSane(b C.SANE_Bool) bool {
@@ -346,7 +340,7 @@ func (c *Conn) GetOption(name string) (val interface{}, err error) {
 			return val, err
 		}
 	}
-	return nil, mkErrorf("no option named %s", name)
+	return nil, fmt.Errorf("no option named %s", name)
 }
 
 func fillOpt(o Option, val interface{}, v []byte) error {
@@ -354,25 +348,25 @@ func fillOpt(o Option, val interface{}, v []byte) error {
 	switch o.Type {
 	case TypeBool:
 		if _, ok := val.(bool); !ok {
-			return mkErrorf("option %s expects bool arg", o.Name)
+			return fmt.Errorf("option %s expects bool arg", o.Name)
 		}
 		q := (*C.SANE_Bool)(p)
 		*q = boolToSane(val.(bool))
 	case TypeInt:
 		if _, ok := val.(int); !ok {
-			return mkErrorf("option %s expects int arg", o.Name)
+			return fmt.Errorf("option %s expects int arg", o.Name)
 		}
 		q := (*C.SANE_Int)(p)
 		*q = C.SANE_Int(val.(int))
 	case TypeFloat:
 		if _, ok := val.(float64); !ok {
-			return mkErrorf("option %s expects float64 arg", o.Name)
+			return fmt.Errorf("option %s expects float64 arg", o.Name)
 		}
 		q := (*C.SANE_Fixed)(p)
 		*q = floatToSane(val.(float64))
 	case TypeString:
 		if _, ok := val.(string); !ok {
-			return mkErrorf("option %s expects string arg", o.Name)
+			return fmt.Errorf("option %s expects string arg", o.Name)
 		}
 		copy(v, val.(string))
 		v[len(v)-1] = byte(0) // ensure null terminator when len(s) == len(v)
@@ -420,7 +414,7 @@ func (c *Conn) SetOption(name string, val interface{}) (info Info, err error) {
 			return info, nil
 		}
 	}
-	return info, mkErrorf("no option named %s", name)
+	return info, fmt.Errorf("no option named %s", name)
 }
 
 // Params retrieves the current scanning parameters. The parameters are
