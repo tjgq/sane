@@ -82,17 +82,29 @@ func printConstraints(o sane.Option) {
 		first = false
 	}
 	if o.ConstrRange != nil {
-		if first {
-			print(" %v..%v", o.ConstrRange.Min, o.ConstrRange.Max)
+		var min, max, quant string
+		if o.Type == sane.TypeInt {
+			min = fmt.Sprintf("%d", o.ConstrRange.Min)
+			max = fmt.Sprintf("%d", o.ConstrRange.Max)
+			quant = fmt.Sprintf("%d", o.ConstrRange.Quant)
 		} else {
-			print("|%v..%v", o.ConstrRange.Min, o.ConstrRange.Max)
+			min = fmt.Sprintf("%f", sane.FixedToFloat(o.ConstrRange.Min))
+			max = fmt.Sprintf("%f", sane.FixedToFloat(o.ConstrRange.Max))
+			quant = fmt.Sprintf("%f", sane.FixedToFloat(o.ConstrRange.Quant))
 		}
-		if (o.Type == sane.TypeInt && o.ConstrRange.Quant != 0) ||
-			(o.Type == sane.TypeFloat && o.ConstrRange.Quant != 0.0) {
-			print(" in steps of %v", o.ConstrRange.Quant)
+		if first {
+			print(" %s..%s", min, max)
+		} else {
+			print("|%s..%s", min, max)
+		}
+		if o.ConstrRange.Quant != 0 {
+			print(" in steps of %s", quant)
 		}
 	} else {
 		for _, v := range o.ConstrSet {
+			if o.Type == sane.TypeFixed {
+				v = sane.FixedToFloat(v.(int))
+			}
 			if first {
 				print(" %v", v)
 				first = false
@@ -112,6 +124,9 @@ func printOption(o sane.Option, v interface{}) {
 
 	// Print current value
 	if v != nil {
+		if o.Type == sane.TypeFixed {
+			v = sane.FixedToFloat(v.(int))
+		}
 		print(" [%v]", v)
 	} else {
 		print(" [?]")
@@ -173,10 +188,11 @@ func parseOptions(c *sane.Conn, args []string) error {
 				if v, err = strconv.Atoi(args[i+1]); err != nil {
 					return invalidArg // not an int
 				}
-			case sane.TypeFloat:
+			case sane.TypeFixed:
 				if v, err = strconv.ParseFloat(args[i+1], 64); err != nil {
 					return invalidArg // not a float
 				}
+				v = sane.FloatToFixed(v.(float64))
 			case sane.TypeString:
 				v = args[i+1]
 			}

@@ -14,7 +14,7 @@ const TestDevice = "test"
 var typeMap = map[Type]string{
 	TypeBool:   "bool",
 	TypeInt:    "int",
-	TypeFloat:  "float",
+	TypeFixed:  "fixed",
 	TypeString: "string",
 	TypeButton: "button",
 }
@@ -127,12 +127,8 @@ func checkOptionType(t *testing.T, o *Option, val interface{}) {
 			t.Errorf("option %s has type bool, should be %s", o.Name, typeName)
 		}
 	case int:
-		if o.Type != TypeInt {
-			t.Errorf("options %s has type int, should be %s", o.Name, typeName)
-		}
-	case float64:
-		if o.Type != TypeFloat {
-			t.Errorf("option %s has type float, should be %s", o.Name, typeName)
+		if o.Type != TypeInt && o.Type != TypeFixed {
+			t.Errorf("option %s has type int/fixed, should be %s", o.Name, typeName)
 		}
 	case string:
 		if o.Type != TypeString {
