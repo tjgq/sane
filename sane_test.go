@@ -231,3 +231,10 @@ func TestHandScanner(t *testing.T) {
 		return readImage(t, c)
 	})
 }
+
+func TestPadding(t *testing.T) {
+	runColorTest(t, func(c *Conn) *Image {
+		setOption(t, c, "ppl-loss", 7)
+		return readImage(t, c)
+	})
+}
