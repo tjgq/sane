@@ -213,3 +213,10 @@ func TestColorImage(t *testing.T) {
 		return readImage(t, c)
 	})
 }
+
+func TestThreePass(t *testing.T) {
+	runColorTest(t, func(c *Conn) *Image {
+		setOption(t, c, "three-pass", true)
+		return readImage(t, c)
+	})
+}
