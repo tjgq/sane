@@ -26,7 +26,7 @@ var unitName = map[sane.Unit]string{
 	sane.UnitMm:      "millimetres",
 	sane.UnitDpi:     "dots per inch",
 	sane.UnitPercent: "percent",
-	sane.UnitMsec:    "microseconds",
+	sane.UnitUsec:    "microseconds",
 }
 
 type EncodeFunc func(io.Writer, image.Image) error

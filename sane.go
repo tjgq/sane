@@ -42,7 +42,7 @@ const (
 	UnitMm           = C.SANE_UNIT_MM
 	UnitDpi          = C.SANE_UNIT_DPI
 	UnitPercent      = C.SANE_UNIT_PERCENT
-	UnitMsec         = C.SANE_UNIT_MICROSECOND
+	UnitUsec         = C.SANE_UNIT_MICROSECOND
 )
 
 type Format int

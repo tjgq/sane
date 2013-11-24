@@ -26,7 +26,7 @@ var unitMap = map[Unit]string{
 	UnitMm:      "mm",
 	UnitDpi:     "dpi",
 	UnitPercent: "percent",
-	UnitMsec:    "milliseconds",
+	UnitUsec:    "milliseconds",
 }
 
 func setOption(t *testing.T, c *Conn, name string, val interface{}) Info {
