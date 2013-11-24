@@ -16,18 +16,18 @@ var opaque = uint8(0xff) // no transparency 8-bit alpha value
 //
 // It implements the image.Image interface.
 type Image struct {
-	frames []*Frame
+	fs [3]*Frame // multiple frames must be in RGB order
 }
 
 // Bounds returns the domain for which At returns valid pixels.
-func (i *Image) Bounds() image.Rectangle {
-	f := i.frames[0]
+func (m *Image) Bounds() image.Rectangle {
+	f := m.fs[0]
 	return image.Rect(0, 0, f.Width, f.Height)
 }
 
 // ColorModel returns the Image's color model.
-func (i *Image) ColorModel() color.Model {
-	if i.frames[0].Format == FrameGray {
+func (m *Image) ColorModel() color.Model {
+	if m.fs[0].Format == FrameGray {
 		return color.GrayModel
 	} else {
 		return color.RGBAModel
@@ -35,29 +35,28 @@ func (i *Image) ColorModel() color.Model {
 }
 
 // At returns the color of the pixel at (x, y).
-func (i *Image) At(x, y int) color.Color {
-	if !(image.Point{x, y}.In(i.Bounds())) {
+func (m *Image) At(x, y int) color.Color {
+	if !(image.Point{x, y}.In(m.Bounds())) {
 		return color.RGBA{}
 	}
-	fs := i.frames
-	switch {
-	case len(fs) == 3:
+	switch m.fs[0].Format {
+	case FrameRed, FrameGreen, FrameBlue:
 		// non-interleaved RGB
 		return color.RGBA{
-			fs[0].At(x, y, 0),
-			fs[1].At(x, y, 0),
-			fs[2].At(x, y, 0),
+			m.fs[0].At(x, y, 0),
+			m.fs[1].At(x, y, 0),
+			m.fs[2].At(x, y, 0),
 			opaque}
-	case fs[0].Format == FrameRgb:
+	case FrameRgb:
 		// interleaved RGB
 		return color.RGBA{
-			fs[0].At(x, y, 0),
-			fs[0].At(x, y, 1),
-			fs[0].At(x, y, 2),
+			m.fs[0].At(x, y, 0),
+			m.fs[0].At(x, y, 1),
+			m.fs[0].At(x, y, 2),
 			opaque}
 	default:
 		// grayscale
-		return color.Gray{fs[0].At(x, y, 0)}
+		return color.Gray{m.fs[0].At(x, y, 0)}
 	}
 }
 
@@ -68,23 +67,26 @@ func (c *Conn) ReadImage() (*Image, error) {
 	}
 	defer c.Cancel()
 
-	frames := make([]*Frame, 0, 3)
+	m := Image{}
 	done := false
 	for i := 0; !done && i < 3; i++ {
 		f, err := c.ReadFrame()
 		if err != nil {
 			return nil, err
 		}
-		frames = append(frames, f)
 		switch {
 		case i == 0 && (f.Format == FrameGray || f.Format == FrameRgb):
+			m.fs[0] = f
 			done = true // single-frame image
-		case (i == 0 && f.Format != FrameRed) ||
-			(i == 1 && f.Format != FrameGreen) ||
-			(i == 2 && f.Format != FrameBlue):
-			// Make sure red/green/blue appear in the right order
+		case f.Format == FrameRed && m.fs[0] == nil:
+			m.fs[0] = f
+		case f.Format == FrameGreen && m.fs[1] == nil:
+			m.fs[1] = f
+		case f.Format == FrameBlue && m.fs[2] == nil:
+			m.fs[2] = f
+		default:
 			return nil, fmt.Errorf("sane: unexpected frame type %d", f.Format)
 		}
 	}
-	return &Image{frames}, nil
+	return &m, nil
 }
