@@ -65,24 +65,23 @@ func (c *Conn) ReadImage() (*Image, error) {
 	defer c.Cancel()
 
 	m := Image{}
-	done := false
-	for i := 0; !done && i < 3; i++ {
-		f, err := c.ReadFrame()
+	for {
+		f, isLast, err := c.ReadFrame()
 		if err != nil {
 			return nil, err
 		}
-		switch {
-		case i == 0 && (f.Format == FrameGray || f.Format == FrameRgb):
+		switch f.Format {
+		case FrameGray, FrameRgb, FrameRed:
 			m.fs[0] = f
-			done = true // single-frame image
-		case f.Format == FrameRed && m.fs[0] == nil:
-			m.fs[0] = f
-		case f.Format == FrameGreen && m.fs[1] == nil:
+		case FrameGreen:
 			m.fs[1] = f
-		case f.Format == FrameBlue && m.fs[2] == nil:
+		case FrameBlue:
 			m.fs[2] = f
 		default:
-			return nil, fmt.Errorf("unexpected frame type %d", f.Format)
+			return nil, fmt.Errorf("unknown frame type %d", f.Format)
+		}
+		if isLast {
+			break
 		}
 	}
 	return &m, nil
