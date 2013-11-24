@@ -443,7 +443,7 @@ func (c *Conn) Params() (Params, error) {
 // complete, a zero count is returned together with an io.EOF error.
 func (c *Conn) Read(b []byte) (int, error) {
 	var n C.SANE_Int
-	s := C.sane_read(c.handle, (*C.SANE_Byte)(&b[0]), C.SANE_Int(cap(b)), &n)
+	s := C.sane_read(c.handle, (*C.SANE_Byte)(&b[0]), C.SANE_Int(len(b)), &n)
 	if s == C.SANE_STATUS_EOF {
 		return 0, io.EOF
 	}
