@@ -254,3 +254,36 @@ func TestFuzzyParams(t *testing.T) {
 		setOption(t, c, "fuzzy-parameters", true)
 	})
 }
+
+func TestFeeder(t *testing.T) {
+	// Feeder has 10 pages
+	runTest(t, 11, func(i int, c *Conn) {
+		if i == 0 {
+			setOption(t, c, "source", "Automatic Document Feeder")
+			setOption(t, c, "mode", "Color")
+			setOption(t, c, "test-picture", "Color pattern")
+		}
+		if i < 10 {
+			checkColor(t, readImage(t, c))
+		} else if _, err := c.ReadImage(); err != ErrEmpty {
+			t.Fatalf("feeder not empty after 10 pages")
+		}
+	})
+}
+
+func TestFeederThreePass(t *testing.T) {
+	// Feeder has 10 pages
+	runTest(t, 11, func(i int, c *Conn) {
+		if i == 0 {
+			setOption(t, c, "source", "Automatic Document Feeder")
+			setOption(t, c, "mode", "Color")
+			setOption(t, c, "test-picture", "Color pattern")
+			setOption(t, c, "three-pass", true)
+		}
+		if i < 10 {
+			checkColor(t, readImage(t, c))
+		} else if _, err := c.ReadImage(); err != ErrEmpty {
+			t.Fatalf("feeder not empty after 10 pages")
+		}
+	})
+}
