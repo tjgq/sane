@@ -215,8 +215,12 @@ func TestColorImage(t *testing.T) {
 }
 
 func TestThreePass(t *testing.T) {
-	runColorTest(t, func(c *Conn) *Image {
-		setOption(t, c, "three-pass", true)
-		return readImage(t, c)
-	})
+	order := []string{"RGB", "RBG", "GBR", "GRB", "BRG", "BGR"}
+	for _, o := range order {
+		runColorTest(t, func(c *Conn) *Image {
+			setOption(t, c, "three-pass", true)
+			setOption(t, c, "three-pass-order", o)
+			return readImage(t, c)
+		})
+	}
 }
