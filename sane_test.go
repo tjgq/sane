@@ -313,3 +313,18 @@ func TestFeederThreePass(t *testing.T) {
 		}
 	})
 }
+
+func TestCancel(t *testing.T) {
+	runTest(t, 1, func(i int, c *Conn) {
+		b := make([]byte, 10)
+		if err := c.Start(); err != nil {
+			t.Fatalf("start failed: %v", err)
+		}
+		c.Cancel()
+		_, err := c.Read(b)
+		if err != ErrCancelled {
+			t.Fatalf("read returned wrong error: %v should be %v",
+				err, ErrCancelled)
+		}
+	})
+}
