@@ -238,3 +238,10 @@ func TestPadding(t *testing.T) {
 		return readImage(t, c)
 	})
 }
+
+func TestFuzzyParams(t *testing.T) {
+	runColorTest(t, func(c *Conn) *Image {
+		setOption(t, c, "fuzzy-parameters", true)
+		return readImage(t, c)
+	})
+}
