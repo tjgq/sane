@@ -5,7 +5,6 @@
 package sane
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 )
@@ -82,7 +81,7 @@ func (c *Conn) ReadImage() (*Image, error) {
 		case f.Format == FrameBlue && m.fs[2] == nil:
 			m.fs[2] = f
 		default:
-			return nil, fmt.Errorf("sane: unexpected frame type %d", f.Format)
+			return nil, mkErrorf("unexpected frame type %d", f.Format)
 		}
 	}
 	return &m, nil

@@ -108,44 +108,47 @@ type Params struct {
 	Depth         int    // bits per sample
 }
 
-type Error int
+type Error error
 
-const (
-	StatusGood        Error = Error(C.SANE_STATUS_GOOD)
-	StatusUnsupported       = Error(C.SANE_STATUS_UNSUPPORTED)
-	StatusCancelled         = Error(C.SANE_STATUS_CANCELLED)
-	StatusBusy              = Error(C.SANE_STATUS_DEVICE_BUSY)
-	StatusInvalid           = Error(C.SANE_STATUS_INVAL)
-	StatusEof               = Error(C.SANE_STATUS_EOF)
-	StatusJammed            = Error(C.SANE_STATUS_JAMMED)
-	StatusNoDocs            = Error(C.SANE_STATUS_NO_DOCS)
-	StatusCoverOpen         = Error(C.SANE_STATUS_COVER_OPEN)
-	StatusIoError           = Error(C.SANE_STATUS_IO_ERROR)
-	StatusNoMem             = Error(C.SANE_STATUS_NO_MEM)
-	StatusDenied            = Error(C.SANE_STATUS_ACCESS_DENIED)
+var (
+	ErrUnsupported = mkErrorf("operation not supported")
+	ErrCancelled   = mkErrorf("operation cancelled")
+	ErrBusy        = mkErrorf("device busy")
+	ErrInvalid     = mkErrorf("invalid argument")
+	ErrJammed      = mkErrorf("feeder jammed")
+	ErrEmpty       = mkErrorf("feeder empty")
+	ErrCoverOpen   = mkErrorf("cover open")
+	ErrIo          = mkErrorf("input/output error")
+	ErrNoMem       = mkErrorf("out of memory")
+	ErrDenied      = mkErrorf("access denied")
 )
 
-var errText = map[Error]string{
-	StatusGood:        "successful",
-	StatusUnsupported: "operation not supported",
-	StatusCancelled:   "operation cancelled",
-	StatusBusy:        "device busy",
-	StatusInvalid:     "invalid argument",
-	StatusEof:         "no more data",
-	StatusJammed:      "feeder jammed",
-	StatusNoDocs:      "feeder empty",
-	StatusCoverOpen:   "cover open",
-	StatusIoError:     "input/output error",
-	StatusNoMem:       "out of memory",
-	StatusDenied:      "access denied",
+var errMap = map[C.SANE_Status]Error{
+	C.SANE_STATUS_UNSUPPORTED:   ErrUnsupported,
+	C.SANE_STATUS_CANCELLED:     ErrCancelled,
+	C.SANE_STATUS_DEVICE_BUSY:   ErrBusy,
+	C.SANE_STATUS_INVAL:         ErrInvalid,
+	C.SANE_STATUS_JAMMED:        ErrJammed,
+	C.SANE_STATUS_NO_DOCS:       ErrEmpty,
+	C.SANE_STATUS_COVER_OPEN:    ErrCoverOpen,
+	C.SANE_STATUS_IO_ERROR:      ErrIo,
+	C.SANE_STATUS_NO_MEM:        ErrNoMem,
+	C.SANE_STATUS_ACCESS_DENIED: ErrDenied,
 }
 
-func (e Error) Error() string {
-	text, ok := errText[e]
+// mkError converts a libsane status code to an Error.
+func mkError(s C.SANE_Status) Error {
+	err, ok := errMap[s]
 	if ok {
-		return fmt.Sprintf("sane: %s", text)
+		return err
 	}
-	return fmt.Sprintf("sane: unknown error code %d", e)
+	return mkErrorf("unknown error code %d", int(s))
+}
+
+// mkErrorf is like fmt.Errorf, but prefixes the error message
+// with the package name.
+func mkErrorf(format string, v ...interface{}) Error {
+	return fmt.Errorf("sane: "+format, v...)
 }
 
 func boolFromSane(b C.SANE_Bool) bool {
@@ -180,7 +183,7 @@ func floatToSane(f float64) C.SANE_Fixed {
 // Init must be called before the package can be used.
 func Init() error {
 	if s := C.sane_init(nil, nil); s != C.SANE_STATUS_GOOD {
-		return Error(s)
+		return mkError(s)
 	}
 	return nil
 }
@@ -195,7 +198,7 @@ func Exit() {
 func Devices() (devs []Device, err error) {
 	var p **C.SANE_Device
 	if s := C.sane_get_devices(&p, C.SANE_FALSE); s != C.SANE_STATUS_GOOD {
-		return nil, Error(s)
+		return nil, mkError(s)
 	}
 	for n := 0; C.nth_device(p, C.int(n)) != nil; n++ {
 		p := C.nth_device(p, C.int(n))
@@ -214,7 +217,7 @@ func Devices() (devs []Device, err error) {
 func Open(name string) (*Conn, error) {
 	var h C.SANE_Handle
 	if s := C.sane_open(strToSane(name), &h); s != C.SANE_STATUS_GOOD {
-		return nil, Error(s)
+		return nil, mkError(s)
 	}
 	return &Conn{name, h, nil}, nil
 }
@@ -222,7 +225,7 @@ func Open(name string) (*Conn, error) {
 // Start initiates the acquisition of a frame.
 func (c *Conn) Start() error {
 	if s := C.sane_start(c.handle); s != C.SANE_STATUS_GOOD {
-		return Error(s)
+		return mkError(s)
 	}
 	return nil
 }
@@ -328,7 +331,7 @@ func (c *Conn) GetOption(name string) (val interface{}, err error) {
 			s := C.sane_control_option(c.handle, C.SANE_Int(o.index),
 				C.SANE_ACTION_GET_VALUE, p, nil)
 			if s != C.SANE_STATUS_GOOD {
-				return nil, Error(s)
+				return nil, mkError(s)
 			}
 			switch o.Type {
 			case TypeBool:
@@ -343,7 +346,7 @@ func (c *Conn) GetOption(name string) (val interface{}, err error) {
 			return val, err
 		}
 	}
-	return nil, fmt.Errorf("sane: no option named %s", name)
+	return nil, mkErrorf("no option named %s", name)
 }
 
 func fillOpt(o Option, val interface{}, v []byte) error {
@@ -351,25 +354,25 @@ func fillOpt(o Option, val interface{}, v []byte) error {
 	switch o.Type {
 	case TypeBool:
 		if _, ok := val.(bool); !ok {
-			return fmt.Errorf("sane: option %s expects bool arg", o.Name)
+			return mkErrorf("option %s expects bool arg", o.Name)
 		}
 		q := (*C.SANE_Bool)(p)
 		*q = boolToSane(val.(bool))
 	case TypeInt:
 		if _, ok := val.(int); !ok {
-			return fmt.Errorf("sane: option %s expects int arg", o.Name)
+			return mkErrorf("option %s expects int arg", o.Name)
 		}
 		q := (*C.SANE_Int)(p)
 		*q = C.SANE_Int(val.(int))
 	case TypeFloat:
 		if _, ok := val.(float64); !ok {
-			return fmt.Errorf("sane: option %s expects float64 arg", o.Name)
+			return mkErrorf("option %s expects float64 arg", o.Name)
 		}
 		q := (*C.SANE_Fixed)(p)
 		*q = floatToSane(val.(float64))
 	case TypeString:
 		if _, ok := val.(string); !ok {
-			return fmt.Errorf("sane: option %s expects string arg", o.Name)
+			return mkErrorf("option %s expects string arg", o.Name)
 		}
 		copy(v, val.(string))
 		v[len(v)-1] = byte(0) // ensure null terminator when len(s) == len(v)
@@ -401,7 +404,7 @@ func (c *Conn) SetOption(name string, val interface{}) (info Info, err error) {
 			}
 
 			if s != C.SANE_STATUS_GOOD {
-				return info, Error(s)
+				return info, mkError(s)
 			}
 
 			if int(i)&C.SANE_INFO_INEXACT != 0 {
@@ -417,7 +420,7 @@ func (c *Conn) SetOption(name string, val interface{}) (info Info, err error) {
 			return info, nil
 		}
 	}
-	return info, fmt.Errorf("sane: no option named %s", name)
+	return info, mkErrorf("no option named %s", name)
 }
 
 // Params retrieves the current scanning parameters. The parameters are
@@ -427,7 +430,7 @@ func (c *Conn) SetOption(name string, val interface{}) (info Info, err error) {
 func (c *Conn) Params() (Params, error) {
 	var p C.SANE_Parameters
 	if s := C.sane_get_parameters(c.handle, &p); s != C.SANE_STATUS_GOOD {
-		return Params{}, Error(s)
+		return Params{}, mkError(s)
 	}
 	return Params{
 		Format:        Format(p.format),
@@ -448,7 +451,7 @@ func (c *Conn) Read(b []byte) (int, error) {
 		return 0, io.EOF
 	}
 	if s != C.SANE_STATUS_GOOD {
-		return 0, Error(s)
+		return 0, mkError(s)
 	}
 	return int(n), nil
 }
