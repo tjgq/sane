@@ -224,3 +224,10 @@ func TestThreePass(t *testing.T) {
 		})
 	}
 }
+
+func TestHandScanner(t *testing.T) {
+	runColorTest(t, func(c *Conn) *Image {
+		setOption(t, c, "hand-scanner", true)
+		return readImage(t, c)
+	})
+}
