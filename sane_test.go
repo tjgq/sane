@@ -143,7 +143,7 @@ func checkOptionType(t *testing.T, o *Option, val interface{}) {
 	}
 }
 
-func runTest(t *testing.T, f func(c *Conn)) {
+func runTest(t *testing.T, n int, f func(i int, c *Conn)) {
 	if err := Init(); err != nil {
 		t.Fatal("init failed:", err)
 	}
@@ -153,21 +153,32 @@ func runTest(t *testing.T, f func(c *Conn)) {
 		t.Fatal("open failed:", err)
 	}
 	defer c.Close()
-	f(c)
+	for i := 0; i < n; i++ {
+		if f != nil {
+			f(i, c)
+		}
+	}
 }
 
-func runGrayTest(t *testing.T, f func(c *Conn) *Image) {
-	runTest(t, func(c *Conn) {
+func runGrayTest(t *testing.T, n int, f func(i int, c *Conn)) {
+	runTest(t, n, func(i int, c *Conn) {
+		setOption(t, c, "mode", "Gray")
 		setOption(t, c, "test-picture", "Color pattern")
-		checkGray(t, f(c))
+		if f != nil {
+			f(i, c)
+		}
+		checkGray(t, readImage(t, c))
 	})
 }
 
-func runColorTest(t *testing.T, f func(c *Conn) *Image) {
-	runTest(t, func(c *Conn) {
+func runColorTest(t *testing.T, n int, f func(i int, c *Conn)) {
+	runTest(t, n, func(i int, c *Conn) {
 		setOption(t, c, "mode", "Color")
 		setOption(t, c, "test-picture", "Color pattern")
-		checkColor(t, f(c))
+		if f != nil {
+			f(i, c)
+		}
+		checkColor(t, readImage(t, c))
 	})
 }
 
@@ -178,7 +189,7 @@ func TestDevices(t *testing.T) {
 }
 
 func TestOptions(t *testing.T) {
-	runTest(t, func(c *Conn) {
+	runTest(t, 1, func(i int, c *Conn) {
 		for _, o := range c.Options() {
 			if _, ok := typeMap[o.Type]; !ok {
 				t.Errorf("unknown type %d for option %s", o.Type, o.Name)
@@ -202,46 +213,44 @@ func TestOptions(t *testing.T) {
 	})
 }
 
-func TestGrayImage(t *testing.T) {
-	runGrayTest(t, func(c *Conn) *Image {
-		return readImage(t, c)
-	})
+func TestGray(t *testing.T) {
+	runGrayTest(t, 1, nil)
 }
 
-func TestColorImage(t *testing.T) {
-	runColorTest(t, func(c *Conn) *Image {
-		return readImage(t, c)
-	})
+func TestGrayTwice(t *testing.T) {
+	runGrayTest(t, 2, nil)
+}
+
+func TestColor(t *testing.T) {
+	runColorTest(t, 1, nil)
+}
+
+func TestColorTwice(t *testing.T) {
+	runColorTest(t, 2, nil)
 }
 
 func TestThreePass(t *testing.T) {
 	order := []string{"RGB", "RBG", "GBR", "GRB", "BRG", "BGR"}
-	for _, o := range order {
-		runColorTest(t, func(c *Conn) *Image {
-			setOption(t, c, "three-pass", true)
-			setOption(t, c, "three-pass-order", o)
-			return readImage(t, c)
-		})
-	}
+	runColorTest(t, len(order), func(i int, c *Conn) {
+		setOption(t, c, "three-pass", true)
+		setOption(t, c, "three-pass-order", order[i])
+	})
 }
 
 func TestHandScanner(t *testing.T) {
-	runColorTest(t, func(c *Conn) *Image {
+	runColorTest(t, 1, func(i int, c *Conn) {
 		setOption(t, c, "hand-scanner", true)
-		return readImage(t, c)
 	})
 }
 
 func TestPadding(t *testing.T) {
-	runColorTest(t, func(c *Conn) *Image {
+	runColorTest(t, 1, func(i int, c *Conn) {
 		setOption(t, c, "ppl-loss", 7)
-		return readImage(t, c)
 	})
 }
 
 func TestFuzzyParams(t *testing.T) {
-	runColorTest(t, func(c *Conn) *Image {
+	runColorTest(t, 1, func(i int, c *Conn) {
 		setOption(t, c, "fuzzy-parameters", true)
-		return readImage(t, c)
 	})
 }
