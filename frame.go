@@ -20,6 +20,10 @@ type Frame struct {
 
 // ReadFrame reads and returns a whole frame.
 func (c *Conn) ReadFrame() (*Frame, error) {
+	if err := c.Start(); err != nil {
+		return nil, err
+	}
+
 	p, err := c.Params()
 	if err != nil {
 		return nil, err
