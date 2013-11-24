@@ -93,6 +93,11 @@ type Device struct {
 	Name, Vendor, Model, Type string
 }
 
+// A connection to a device, which can be used to get and set scanning
+// options, or to read one or more frames.
+//
+// It implements the Reader interface, but note that it only makes sense to
+// call Read after acquisition of a new frame is started by calling Start.
 type Conn struct {
 	Device  string // device name
 	handle  C.SANE_Handle
@@ -205,9 +210,7 @@ func Devices() (devs []Device, err error) {
 	return devs, nil
 }
 
-// Open opens a connection to a device. If successful, methods on the returned
-// connection object can be used to get and set scanning options, or to read
-// frames from the device.
+// Open opens a connection to a device.
 func Open(name string) (*Conn, error) {
 	var h C.SANE_Handle
 	if s := C.sane_open(strToSane(name), &h); s != C.SANE_STATUS_GOOD {
@@ -451,8 +454,8 @@ func (c *Conn) Read(b []byte) (int, error) {
 }
 
 // Cancel cancels the currently pending operation as soon as possible.
-// It merely initiates the cancellation; cancellation is only guaranteed to
-// have occurred when the cancelled operation returns.
+// It returns immediately; when the actual cancellation occurs, the canceled
+// operation returns with ErrCancelled.
 func (c *Conn) Cancel() {
 	C.sane_cancel(c.handle)
 }
