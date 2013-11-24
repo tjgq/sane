@@ -255,6 +255,32 @@ func TestFuzzyParams(t *testing.T) {
 	})
 }
 
+func TestReadError(t *testing.T) {
+	errList := []struct {
+		s string
+		e Error
+	}{
+		{"SANE_STATUS_UNSUPPORTED", ErrUnsupported},
+		{"SANE_STATUS_CANCELLED", ErrCancelled},
+		{"SANE_STATUS_DEVICE_BUSY", ErrBusy},
+		{"SANE_STATUS_INVAL", ErrInvalid},
+		{"SANE_STATUS_JAMMED", ErrJammed},
+		{"SANE_STATUS_NO_DOCS", ErrEmpty},
+		{"SANE_STATUS_COVER_OPEN", ErrCoverOpen},
+		{"SANE_STATUS_IO_ERROR", ErrIo},
+		{"SANE_STATUS_NO_MEM", ErrNoMem},
+		{"SANE_STATUS_ACCESS_DENIED", ErrDenied},
+	}
+	runTest(t, len(errList), func(i int, c *Conn) {
+		setOption(t, c, "read-return-value", errList[i].s)
+		_, err := c.ReadImage()
+		if err != errList[i].e {
+			t.Fatalf("ReadImage returned wrong error: %v should be %v",
+				err, errList[i].e)
+		}
+	})
+}
+
 func TestFeeder(t *testing.T) {
 	// Feeder has 10 pages
 	runTest(t, 11, func(i int, c *Conn) {
