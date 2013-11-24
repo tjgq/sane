@@ -11,13 +11,6 @@ import (
 
 const TestDevice = "test"
 
-var (
-	monoBlack  = color.Gray{0}
-	monoWhite  = color.Gray{255}
-	colorBlack = color.RGBA{0, 0, 0, 255}
-	colorWhite = color.RGBA{255, 255, 255, 255}
-)
-
 var typeMap = map[Type]string{
 	TypeBool:   "bool",
 	TypeInt:    "int",
@@ -57,28 +50,70 @@ func readImage(t *testing.T, c *Conn) *Image {
 }
 
 func checkGray(t *testing.T, m *Image) {
+	// Areas of 4 x 4 pixels and a distance of 1 pixel between each other
+	// and to the borders. Starting with black to white in a line of 256
+	// areas. The next line is white to black. The background is medium
+	// gray (0x55).
 	if m.ColorModel() != color.GrayModel {
 		t.Fatal("bad color model")
 	}
 	b := m.Bounds()
 	for x := 0; x < b.Max.X; x++ {
 		for y := 0; y < b.Max.Y; y++ {
-			if m.At(x, y) != monoBlack {
-				t.Fatalf("bad pixel at (%d,%d)", x, y)
+			var c color.Gray
+			xPos, yPos := x/5, y/5
+			switch {
+			case x%5 == 0 || y%5 == 0:
+				c = color.Gray{0x55}
+			case yPos%2 == 0:
+				c = color.Gray{uint8(xPos % 0xFF)}
+			case yPos%2 == 1:
+				c = color.Gray{0xFF - uint8(xPos%0xFF)}
+			}
+			if m.At(x, y) != c {
+				t.Fatalf("bad pixel at (%d,%d): %v should be %v",
+					x, y, xPos, yPos, m.At(x, y), c)
 			}
 		}
 	}
 }
 
 func checkColor(t *testing.T, m *Image) {
+	// Areas of 4 x 4 pixels and a distance of 1 pixel between each other
+	// and to the borders. Starting with black to red in a line of 256
+	// areas. The next line is red to black. The 3rd and 4th line is green,
+	// the 5th and 6th blue. The background is medium gray (0x55).
 	if m.ColorModel() != color.RGBAModel {
 		t.Fatal("bad color model")
 	}
 	b := m.Bounds()
 	for x := 0; x < b.Max.X; x++ {
 		for y := 0; y < b.Max.Y; y++ {
-			if m.At(x, y) != colorBlack {
-				t.Fatalf("bad pixel at (%d,%d)", x, y)
+			var (
+				s uint8
+				c color.RGBA
+			)
+			xPos, yPos := x/5, y/5
+			if x%5 == 0 || y%5 == 0 {
+				c = color.RGBA{0x55, 0x55, 0x55, 0xFF}
+			} else {
+				if yPos%2 == 0 {
+					s = uint8(xPos % 0xFF)
+				} else {
+					s = uint8(0xFF - (xPos % 0xFF))
+				}
+				switch yPos % 6 {
+				case 0, 1:
+					c = color.RGBA{s, 0, 0, 0xFF}
+				case 2, 3:
+					c = color.RGBA{0, s, 0, 0xFF}
+				case 4, 5:
+					c = color.RGBA{0, 0, s, 0xFF}
+				}
+			}
+			if m.At(x, y) != c {
+				t.Fatalf("bad pixel at (%d,%d): %v should be %v",
+					x, y, m.At(x, y), c)
 			}
 		}
 	}
@@ -123,6 +158,7 @@ func runTest(t *testing.T, f func(c *Conn)) {
 
 func runGrayTest(t *testing.T, f func(c *Conn) *Image) {
 	runTest(t, func(c *Conn) {
+		setOption(t, c, "test-picture", "Color pattern")
 		checkGray(t, f(c))
 	})
 }
@@ -130,6 +166,7 @@ func runGrayTest(t *testing.T, f func(c *Conn) *Image) {
 func runColorTest(t *testing.T, f func(c *Conn) *Image) {
 	runTest(t, func(c *Conn) {
 		setOption(t, c, "mode", "Color")
+		setOption(t, c, "test-picture", "Color pattern")
 		checkColor(t, f(c))
 	})
 }
