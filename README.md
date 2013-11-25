@@ -5,7 +5,7 @@ for the Go programming language.
 
 ## INSTALLING
 
-Just run `go get github.com/tjgq/go-sane/`.
+Just run `go get github.com/tjgq/go-sane`.
 
 The bindings are generated against `libsane` using `cgo`.
 You will need to have the appropriate development packages installed.
