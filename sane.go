@@ -9,6 +9,8 @@ package sane
  #cgo LDFLAGS: -lsane
  #include <sane/sane.h>
 
+ #define SaneWordSize sizeof(SANE_Word)
+
  // Helpers to avoid unnecessary fiddling around with package unsafe
  SANE_Word nth_word(SANE_Word *v, int n) { return v[n]; }
  SANE_String_Const nth_string(SANE_String_Const *v, int n) { return v[n]; }
@@ -74,7 +76,7 @@ type Option struct {
 	Desc        string        // option description
 	Type        Type          // option type
 	Unit        Unit          // units
-	Size        int           // option size
+	Length      int           // vector length for vector-valued options
 	ConstrSet   []interface{} // constraint set
 	ConstrRange *Range        // constraint range
 	IsActive    bool          // whether option is active
@@ -83,6 +85,7 @@ type Option struct {
 	IsEmulated  bool          // whether option is emulated
 	IsAdvanced  bool          // whether option is advanced
 	index       int           // internal option index
+	size        int           // internal option size in bytes
 }
 
 type autoType int
@@ -261,7 +264,12 @@ func parseOpt(d *C.SANE_Option_Descriptor) (o Option) {
 	o.Desc = strFromSane(d.desc)
 	o.Type = Type(d._type)
 	o.Unit = Unit(d.unit)
-	o.Size = int(d.size)
+	o.size = int(d.size)
+	if o.Type == TypeInt || o.Type == TypeFixed {
+		o.Length = int(d.size / C.SaneWordSize)
+	} else {
+		o.Length = 1
+	}
 	switch d.constraint_type {
 	case C.SANE_CONSTRAINT_RANGE:
 		parseRangeConstr(d, &o)
@@ -310,8 +318,8 @@ func (c *Conn) GetOption(name string) (val interface{}, err error) {
 	for _, o := range c.Options() {
 		if o.Name == name {
 			var p unsafe.Pointer
-			if o.Size > 0 {
-				p = unsafe.Pointer(&make([]byte, o.Size)[0])
+			if o.size > 0 {
+				p = unsafe.Pointer(&make([]byte, o.size)[0])
 			}
 			s := C.sane_control_option(c.handle, C.SANE_Int(o.index),
 				C.SANE_ACTION_GET_VALUE, p, nil)
@@ -370,7 +378,7 @@ func (c *Conn) SetOption(name string, val interface{}) (info Info, err error) {
 		if o.Name == name {
 			var s C.SANE_Status
 			var i C.SANE_Int
-			v := make([]byte, o.Size)
+			v := make([]byte, o.size)
 			p := unsafe.Pointer(&v[0])
 
 			if _, ok := val.(autoType); ok {
