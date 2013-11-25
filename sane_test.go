@@ -205,6 +205,36 @@ var testOpts = []Option{
 	},
 }
 
+type testVal struct {
+	name string
+	typ  Type
+	val  interface{}
+}
+
+// Values to test option setting.
+var testVals = []testVal{
+	{
+		name: "mode",
+		typ:  TypeString,
+		val:  "Color",
+	},
+	{
+		name: "three-pass",
+		typ:  TypeBool,
+		val:  true,
+	},
+	{
+		name: "depth",
+		typ:  TypeInt,
+		val:  16,
+	},
+	{
+		name: "resolution",
+		typ:  TypeFixed,
+		val:  FloatToFixed(100),
+	},
+}
+
 func checkOption(t *testing.T, actual, expected *Option) {
 	if actual.Name != expected.Name {
 		t.Errorf("option %s has wrong name: %v should be %v",
@@ -284,6 +314,14 @@ func findOption(opts []Option, name string) *Option {
 		}
 	}
 	return nil
+}
+
+func getOption(t *testing.T, c *Conn, name string) interface{} {
+	v, err := c.GetOption(name)
+	if err != nil {
+		t.Fatalf("get option %s failed: %v", name, err)
+	}
+	return v
 }
 
 func setOption(t *testing.T, c *Conn, name string, val interface{}) Info {
@@ -447,6 +485,32 @@ func TestGetOptions(t *testing.T) {
 			} else {
 				checkOptionType(t, &o, val)
 			}
+		}
+	})
+}
+
+func TestSetOptions(t *testing.T) {
+	runTest(t, len(testVals), func(i int, c *Conn) {
+		optName := testVals[i].name
+		optType := testVals[i].typ
+		optVal := testVals[i].val
+		setOption(t, c, optName, optVal)
+		v := getOption(t, c, optName)
+		var fail bool
+		switch optType {
+		case TypeBool:
+			b, ok := v.(bool)
+			fail = !ok || b != optVal
+		case TypeInt, TypeFixed:
+			i, ok := v.(int)
+			fail = !ok || i != optVal
+		case TypeString:
+			s, ok := v.(string)
+			fail = !ok || s != optVal
+		}
+		if fail {
+			t.Errorf("get option %s returned wrong value: %v should be %v",
+				optName, v, optVal)
 		}
 	})
 }
