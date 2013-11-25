@@ -66,7 +66,7 @@ func (c *Conn) ReadImage() (*Image, error) {
 
 	m := Image{}
 	for {
-		f, isLast, err := c.ReadFrame()
+		f, err := c.ReadFrame()
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +80,7 @@ func (c *Conn) ReadImage() (*Image, error) {
 		default:
 			return nil, fmt.Errorf("unknown frame type %d", f.Format)
 		}
-		if isLast {
+		if f.IsLast {
 			break
 		}
 	}

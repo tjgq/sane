@@ -14,20 +14,20 @@ type Frame struct {
 	Height       int    // height in pixels
 	Channels     int    // number of channels
 	Depth        int    // bits per sample
+	IsLast       bool   // whether this is the last frame
 	bytesPerLine int    // bytes per line, including any padding
 	data         []byte // raw data
 }
 
-// ReadFrame reads and returns a whole frame,
-// and whether it is the last frame in an image.
-func (c *Conn) ReadFrame() (f *Frame, isLast bool, err error) {
+// ReadFrame reads and returns a whole frame.
+func (c *Conn) ReadFrame() (f *Frame, err error) {
 	if err := c.Start(); err != nil {
-		return nil, true, err
+		return nil, err
 	}
 
 	p, err := c.Params()
 	if err != nil {
-		return nil, true, err
+		return nil, err
 	}
 
 	data := new(bytes.Buffer)
@@ -37,7 +37,7 @@ func (c *Conn) ReadFrame() (f *Frame, isLast bool, err error) {
 	}
 
 	if _, err := data.ReadFrom(c); err != nil {
-		return nil, true, err
+		return nil, err
 	}
 
 	nch := 1
@@ -51,8 +51,9 @@ func (c *Conn) ReadFrame() (f *Frame, isLast bool, err error) {
 		Height:       data.Len() / p.BytesPerLine, // p.Lines is unreliable
 		Channels:     nch,
 		Depth:        p.Depth,
+		IsLast:       p.IsLast,
 		bytesPerLine: p.BytesPerLine,
-		data:         data.Bytes()}, p.IsLast, nil
+		data:         data.Bytes()}, nil
 }
 
 // At returns the sample at coordinates (x,y) for channel ch.
