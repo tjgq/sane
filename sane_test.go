@@ -5,11 +5,18 @@
 package sane
 
 import (
+	"fmt"
 	"image/color"
+	"reflect"
 	"testing"
 )
 
-const TestDevice = "test"
+const TestDevice = "test" // the sane test device
+
+var not = map[bool]string{
+	true:  "",
+	false: "not ",
+}
 
 var typeMap = map[Type]string{
 	TypeBool:   "bool",
@@ -17,6 +24,14 @@ var typeMap = map[Type]string{
 	TypeFixed:  "fixed",
 	TypeString: "string",
 	TypeButton: "button",
+}
+
+func typeName(t Type) string {
+	s, ok := typeMap[t]
+	if ok {
+		return s
+	}
+	return fmt.Sprintf("(unknown type with value %d)", int(t))
 }
 
 var unitMap = map[Unit]string{
@@ -27,6 +42,248 @@ var unitMap = map[Unit]string{
 	UnitDpi:     "dpi",
 	UnitPercent: "percent",
 	UnitUsec:    "milliseconds",
+}
+
+func unitName(u Unit) string {
+	s, ok := unitMap[u]
+	if ok {
+		return s
+	}
+	return fmt.Sprintf("(unknown unit with value %d)", int(u))
+}
+
+// Test options provided by the sane test device.
+var testOpts = []Option{
+	{
+		Name:         "bool-soft-select-soft-detect",
+		Type:         TypeBool,
+		Unit:         UnitNone,
+		Length:       1,
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:         "bool-hard-select-soft-detect",
+		Type:         TypeBool,
+		Unit:         UnitNone,
+		Length:       1,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:       "bool-hard-select",
+		Type:       TypeBool,
+		Unit:       UnitNone,
+		Length:     1,
+		IsAdvanced: true,
+	},
+	{
+		Name:         "bool-soft-detect",
+		Type:         TypeBool,
+		Unit:         UnitNone,
+		Length:       1,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:         "bool-soft-select-soft-detect-auto",
+		Type:         TypeBool,
+		Unit:         UnitNone,
+		Length:       1,
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+		IsAutomatic:  true,
+	},
+	{
+		Name:         "bool-soft-select-soft-detect-emulated",
+		Type:         TypeBool,
+		Unit:         UnitNone,
+		Length:       1,
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+		IsEmulated:   true,
+	},
+	{
+		Name:         "int",
+		Type:         TypeInt,
+		Unit:         UnitNone,
+		Length:       1,
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:   "int-constraint-range",
+		Type:   TypeInt,
+		Unit:   UnitPixel,
+		Length: 1,
+		ConstrRange: &Range{
+			Min:   4,
+			Max:   192,
+			Quant: 2,
+		},
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:         "int-constraint-word-list",
+		Type:         TypeInt,
+		Unit:         UnitBit,
+		Length:       1,
+		ConstrSet:    []interface{}{-42, -8, 0, 17, 42, 256, 65536, 16777216, 1073741824},
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:         "int-constraint-array-constraint-word-list",
+		Type:         TypeInt,
+		Unit:         UnitPercent,
+		Length:       6,
+		ConstrSet:    []interface{}{-42, -8, 0, 17, 42, 256, 65536, 16777216, 1073741824},
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:         "fixed",
+		Type:         TypeFixed,
+		Unit:         UnitNone,
+		Length:       1,
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:   "fixed-constraint-range",
+		Type:   TypeFixed,
+		Unit:   UnitUsec,
+		Length: 1,
+		ConstrRange: &Range{
+			Min:   -2763653,
+			Max:   2147483641,
+			Quant: 131072,
+		},
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:         "fixed-constraint-word-list",
+		Type:         TypeFixed,
+		Unit:         UnitNone,
+		Length:       1,
+		ConstrSet:    []interface{}{-2143027, 792985, 2752512, 8486912},
+		IsSettable:   true,
+		IsDetectable: true,
+		IsAdvanced:   true,
+	},
+	{
+		Name:         "string",
+		Type:         TypeString,
+		Unit:         UnitNone,
+		Length:       1,
+		IsSettable:   true,
+		IsDetectable: true,
+	},
+	{
+		Name:   "string-constraint-string-list",
+		Type:   TypeString,
+		Unit:   UnitNone,
+		Length: 1,
+		ConstrSet: []interface{}{
+			"First entry",
+			"Second entry",
+			"This is the very long third entry. Maybe the frontend has an idea how to display it",
+		},
+		IsSettable:   true,
+		IsDetectable: true,
+	},
+}
+
+func checkOption(t *testing.T, actual, expected *Option) {
+	if actual.Name != expected.Name {
+		t.Errorf("option %s has wrong name: %v should be %v",
+			actual.Name, actual.Name, expected.Name)
+	}
+	if actual.Type != expected.Type {
+		t.Errorf("option %s has wrong type: %s should be %s",
+			actual.Name, typeName(actual.Type), typeName(expected.Type))
+	}
+	if actual.Unit != expected.Unit {
+		t.Errorf("option %s has wrong unit: %s should be %s",
+			actual.Name, unitName(actual.Unit), unitName(expected.Unit))
+	}
+	if actual.Length != expected.Length {
+		t.Errorf("option %s has wrong length: %d should be %d",
+			actual.Name, actual.Length, expected.Length)
+	}
+	if actual.IsSettable != expected.IsSettable {
+		t.Errorf("option %s should %sbe settable",
+			actual.Name, not[expected.IsSettable])
+	}
+	if actual.IsDetectable != expected.IsDetectable {
+		t.Errorf("option %s should %sbe detectable",
+			actual.Name, not[expected.IsDetectable])
+	}
+	if actual.IsAutomatic != expected.IsAutomatic {
+		t.Errorf("option %s should %sbe automatic",
+			actual.Name, not[expected.IsAutomatic])
+	}
+	if actual.IsEmulated != expected.IsEmulated {
+		t.Errorf("option %s should %sbe emulated",
+			actual.Name, not[expected.IsEmulated])
+	}
+	if actual.IsAdvanced != expected.IsAdvanced {
+		t.Errorf("option %s should %sbe advanced",
+			actual.Name, not[expected.IsAdvanced])
+	}
+	if !reflect.DeepEqual(actual.ConstrSet, expected.ConstrSet) {
+		t.Errorf("option %s has incorrect constraint set: %v should be %v",
+			actual.Name, actual.ConstrSet, expected.ConstrSet)
+	}
+	if !reflect.DeepEqual(actual.ConstrRange, expected.ConstrRange) {
+		t.Errorf("option %s has incorrect constraint range: %v should be %v",
+			actual.Name, actual.ConstrRange, expected.ConstrRange)
+	}
+}
+
+func checkOptionType(t *testing.T, o *Option, val interface{}) {
+	var (
+		ok      bool
+		valType string
+	)
+	switch val.(type) {
+	case bool:
+		ok = o.Type == TypeBool
+		valType = "bool"
+	case int:
+		ok = o.Type == TypeInt || o.Type == TypeFixed
+		valType = "int"
+	case string:
+		ok = o.Type == TypeString
+		valType = "string"
+	default:
+		ok = false
+		valType = "unexpected type"
+	}
+	if !ok {
+		t.Errorf("get option %s returned %s, should return %s",
+			o.Name, valType, typeName(o.Type))
+	}
+}
+
+func findOption(opts []Option, name string) *Option {
+	for _, o := range opts {
+		if o.Name == name {
+			return &o
+		}
+	}
+	return nil
 }
 
 func setOption(t *testing.T, c *Conn, name string, val interface{}) Info {
@@ -119,26 +376,6 @@ func checkColor(t *testing.T, m *Image) {
 	}
 }
 
-func checkOptionType(t *testing.T, o *Option, val interface{}) {
-	typeName := typeMap[o.Type]
-	switch val.(type) {
-	case bool:
-		if o.Type != TypeBool {
-			t.Errorf("option %s has type bool, should be %s", o.Name, typeName)
-		}
-	case int:
-		if o.Type != TypeInt && o.Type != TypeFixed {
-			t.Errorf("option %s has type int/fixed, should be %s", o.Name, typeName)
-		}
-	case string:
-		if o.Type != TypeString {
-			t.Errorf("option %s has type string, should be %s", o.Name, typeName)
-		}
-	default:
-		t.Errorf("option %s has unexpected type, should be %s", o.Name, typeName)
-	}
-}
-
 func runTest(t *testing.T, n int, f func(i int, c *Conn)) {
 	if err := Init(); err != nil {
 		t.Fatal("init failed:", err)
@@ -184,20 +421,25 @@ func TestDevices(t *testing.T) {
 	}
 }
 
-func TestOptions(t *testing.T) {
+func TestListOptions(t *testing.T) {
+	runTest(t, 1, func(i int, c *Conn) {
+		opts := c.Options()
+		for _, o := range testOpts {
+			opt := findOption(opts, o.Name)
+			if opt == nil {
+				t.Errorf("option %s missing from list", o.Name)
+			} else {
+				checkOption(t, opt, &o)
+			}
+		}
+	})
+}
+
+func TestGetOptions(t *testing.T) {
 	runTest(t, 1, func(i int, c *Conn) {
 		for _, o := range c.Options() {
-			if _, ok := typeMap[o.Type]; !ok {
-				t.Errorf("unknown type %d for option %s", o.Type, o.Name)
-			}
-			if _, ok := unitMap[o.Unit]; !ok {
-				t.Errorf("unknown unit %d for option %s", o.Unit, o.Name)
-			}
-			if !o.IsActive {
+			if !o.IsActive || !o.IsDetectable || o.Type == TypeButton {
 				continue
-			}
-			if o.Type == TypeButton {
-				return
 			}
 			val, err := c.GetOption(o.Name)
 			if err != nil {
