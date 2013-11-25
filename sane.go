@@ -70,22 +70,23 @@ type Range struct {
 }
 
 type Option struct {
-	Name        string        // option name
-	Group       string        // option group
-	Title       string        // option title
-	Desc        string        // option description
-	Type        Type          // option type
-	Unit        Unit          // units
-	Length      int           // vector length for vector-valued options
-	ConstrSet   []interface{} // constraint set
-	ConstrRange *Range        // constraint range
-	IsActive    bool          // whether option is active
-	IsSettable  bool          // whether option can be set
-	IsAutomatic bool          // whether option has an auto value
-	IsEmulated  bool          // whether option is emulated
-	IsAdvanced  bool          // whether option is advanced
-	index       int           // internal option index
-	size        int           // internal option size in bytes
+	Name         string        // option name
+	Group        string        // option group
+	Title        string        // option title
+	Desc         string        // option description
+	Type         Type          // option type
+	Unit         Unit          // units
+	Length       int           // vector length for vector-valued options
+	ConstrSet    []interface{} // constraint set
+	ConstrRange  *Range        // constraint range
+	IsActive     bool          // whether option is active
+	IsSettable   bool          // whether option can be set
+	IsDetectable bool          // whether option value can be detected
+	IsAutomatic  bool          // whether option has an auto value
+	IsEmulated   bool          // whether option is emulated
+	IsAdvanced   bool          // whether option is advanced
+	index        int           // internal option index
+	size         int           // internal option size in bytes
 }
 
 type autoType int
@@ -280,6 +281,7 @@ func parseOpt(d *C.SANE_Option_Descriptor) (o Option) {
 	}
 	o.IsActive = (d.cap & C.SANE_CAP_INACTIVE) == 0
 	o.IsSettable = (d.cap & C.SANE_CAP_SOFT_SELECT) != 0
+	o.IsDetectable = (d.cap & C.SANE_CAP_SOFT_DETECT) != 0
 	o.IsAutomatic = (d.cap & C.SANE_CAP_AUTOMATIC) != 0
 	o.IsEmulated = (d.cap & C.SANE_CAP_EMULATED) != 0
 	o.IsAdvanced = (d.cap & C.SANE_CAP_ADVANCED) != 0
