@@ -317,9 +317,9 @@ func (c *Conn) Options() (opts []Option) {
 // GetOption gets the current value for the named option. If successful, it
 // returns a value of the appropriate type for the option.
 func (c *Conn) GetOption(name string) (val interface{}, err error) {
+	var p unsafe.Pointer
 	for _, o := range c.Options() {
 		if o.Name == name {
-			var p unsafe.Pointer
 			if o.size > 0 {
 				p = unsafe.Pointer(&make([]byte, o.size)[0])
 			}
@@ -342,18 +342,19 @@ func (c *Conn) GetOption(name string) (val interface{}, err error) {
 	return nil, fmt.Errorf("no option named %s", name)
 }
 
-func fillOpt(o Option, val interface{}, v []byte) error {
+func fillOpt(o Option, val interface{}) (unsafe.Pointer, error) {
+	v := make([]byte, o.size)
 	p := unsafe.Pointer(&v[0])
 	switch o.Type {
 	case TypeBool:
 		if _, ok := val.(bool); !ok {
-			return fmt.Errorf("option %s expects bool arg", o.Name)
+			return nil, fmt.Errorf("option %s expects bool arg", o.Name)
 		}
 		q := (*C.SANE_Bool)(p)
 		*q = boolToSane(val.(bool))
 	case TypeInt, TypeFixed:
 		if _, ok := val.(int); !ok {
-			return fmt.Errorf("option %s expects int arg", o.Name)
+			return nil, fmt.Errorf("option %s expects int arg", o.Name)
 		}
 		if o.Type == TypeInt {
 			q := (*C.SANE_Int)(p)
@@ -364,31 +365,31 @@ func fillOpt(o Option, val interface{}, v []byte) error {
 		}
 	case TypeString:
 		if _, ok := val.(string); !ok {
-			return fmt.Errorf("option %s expects string arg", o.Name)
+			return nil, fmt.Errorf("option %s expects string arg", o.Name)
 		}
 		copy(v, val.(string))
 		v[len(v)-1] = byte(0) // ensure null terminator when len(s) == len(v)
 	}
-	return nil
+	return p, nil
 }
 
 // SetOption sets the value of the named option, which should be either of the
 // corresponding type, or Auto for automatic mode. If successful, info contains
 // information on the effects of setting the option.
 func (c *Conn) SetOption(name string, val interface{}) (info Info, err error) {
+	var (
+		s C.SANE_Status
+		i C.SANE_Int
+	)
 	for _, o := range c.Options() {
 		if o.Name == name {
-			var s C.SANE_Status
-			var i C.SANE_Int
-			v := make([]byte, o.size)
-			p := unsafe.Pointer(&v[0])
-
 			if _, ok := val.(autoType); ok {
 				// automatic mode
 				s = C.sane_control_option(c.handle, C.SANE_Int(o.index),
 					C.SANE_ACTION_SET_AUTO, nil, &i)
 			} else {
-				if err = fillOpt(o, val, v); err != nil {
+				p, err := fillOpt(o, val)
+				if err != nil {
 					return info, err
 				}
 				s = C.sane_control_option(c.handle, C.SANE_Int(o.index),
