@@ -21,7 +21,7 @@ var not = map[bool]string{
 var typeMap = map[Type]string{
 	TypeBool:   "bool",
 	TypeInt:    "int",
-	TypeFixed:  "fixed",
+	TypeFloat:  "float",
 	TypeString: "string",
 	TypeButton: "button",
 }
@@ -151,7 +151,7 @@ var testOpts = []Option{
 	},
 	{
 		Name:         "fixed",
-		Type:         TypeFixed,
+		Type:         TypeFloat,
 		Unit:         UnitNone,
 		Length:       1,
 		IsSettable:   true,
@@ -160,13 +160,13 @@ var testOpts = []Option{
 	},
 	{
 		Name:   "fixed-constraint-range",
-		Type:   TypeFixed,
+		Type:   TypeFloat,
 		Unit:   UnitUsec,
 		Length: 1,
 		ConstrRange: &Range{
-			Min:   -2763653,
-			Max:   2147483641,
-			Quant: 131072,
+			Min:   -42.16999816894531,
+			Max:   32767.999893188477,
+			Quant: 2.0,
 		},
 		IsSettable:   true,
 		IsDetectable: true,
@@ -174,10 +174,10 @@ var testOpts = []Option{
 	},
 	{
 		Name:         "fixed-constraint-word-list",
-		Type:         TypeFixed,
+		Type:         TypeFloat,
 		Unit:         UnitNone,
 		Length:       1,
-		ConstrSet:    []interface{}{-2143027, 792985, 2752512, 8486912},
+		ConstrSet:    []interface{}{-32.69999694824219, 12.099990844726562, 42.0, 129.5},
 		IsSettable:   true,
 		IsDetectable: true,
 		IsAdvanced:   true,
@@ -230,8 +230,8 @@ var testVals = []testVal{
 	},
 	{
 		name: "resolution",
-		typ:  TypeFixed,
-		val:  FloatToFixed(100),
+		typ:  TypeFloat,
+		val:  100.0,
 	},
 }
 
@@ -292,8 +292,11 @@ func checkOptionType(t *testing.T, o *Option, val interface{}) {
 		ok = o.Type == TypeBool
 		valType = "bool"
 	case int:
-		ok = o.Type == TypeInt || o.Type == TypeFixed
+		ok = o.Type == TypeInt
 		valType = "int"
+	case float64:
+		ok = o.Type == TypeFloat
+		valType = "float"
 	case string:
 		ok = o.Type == TypeString
 		valType = "string"
@@ -501,9 +504,12 @@ func TestSetOptions(t *testing.T) {
 		case TypeBool:
 			b, ok := v.(bool)
 			fail = !ok || b != optVal
-		case TypeInt, TypeFixed:
+		case TypeInt:
 			i, ok := v.(int)
 			fail = !ok || i != optVal
+		case TypeFloat:
+			f, ok := v.(float64)
+			fail = !ok || f != optVal
 		case TypeString:
 			s, ok := v.(string)
 			fail = !ok || s != optVal

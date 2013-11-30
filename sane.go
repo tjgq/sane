@@ -29,7 +29,7 @@ type Type int
 const (
 	TypeBool   Type = C.SANE_TYPE_BOOL
 	TypeInt         = C.SANE_TYPE_INT
-	TypeFixed       = C.SANE_TYPE_FIXED
+	TypeFloat       = C.SANE_TYPE_FIXED
 	TypeString      = C.SANE_TYPE_STRING
 	TypeButton      = C.SANE_TYPE_BUTTON
 	typeGroup       = C.SANE_TYPE_GROUP // internal use only
@@ -64,9 +64,9 @@ type Info struct {
 }
 
 type Range struct {
-	Min   int // minimum value
-	Max   int // maximum value
-	Quant int // quantization step
+	Min   interface{} // minimum value
+	Max   interface{} // maximum value
+	Quant interface{} // quantization step
 }
 
 type Option struct {
@@ -175,17 +175,12 @@ func strToSane(s string) C.SANE_String_Const {
 	return C.SANE_String_Const(unsafe.Pointer(&str[0]))
 }
 
-// The scale factor used for fixed-point values.
-var ScaleFactor = int(1 << C.SANE_FIXED_SCALE_SHIFT)
-
-// FixedToFloat converts a fixed point value to floating point.
-func FixedToFloat(f int) float64 {
-	return float64(f) / float64(ScaleFactor)
+func floatFromSane(f C.SANE_Fixed) float64 {
+	return float64(f) / (1 << C.SANE_FIXED_SCALE_SHIFT)
 }
 
-// FloatToFixed converts a floating point value to fixed point.
-func FloatToFixed(f float64) int {
-	return int(f * float64(ScaleFactor))
+func floatToSane(f float64) C.SANE_Fixed {
+	return C.SANE_Fixed(f * (1 << C.SANE_FIXED_SCALE_SHIFT))
 }
 
 // Init must be called before the package can be used.
@@ -238,7 +233,15 @@ func (c *Conn) Start() error {
 
 func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	r := *(**C.SANE_Range)(unsafe.Pointer(&d.constraint))
-	o.ConstrRange = &Range{int(r.min), int(r.max), int(r.quant)}
+	switch o.Type {
+	case TypeInt:
+		o.ConstrRange = &Range{int(r.min), int(r.max), int(r.quant)}
+	case TypeFloat:
+		o.ConstrRange = &Range{
+			floatFromSane(C.SANE_Fixed(r.min)),
+			floatFromSane(C.SANE_Fixed(r.max)),
+			floatFromSane(C.SANE_Fixed(r.quant))}
+	}
 }
 
 func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
@@ -247,6 +250,15 @@ func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
 		i := int(C.nth_word(p, C.int(i)))
 		o.ConstrSet = append(o.ConstrSet, interface{}(i))
+	}
+}
+
+func parseFloatConstr(d *C.SANE_Option_Descriptor, o *Option) {
+	p := *(**C.SANE_Word)(unsafe.Pointer(&d.constraint))
+	// First word is number of remaining words in array.
+	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
+		f := floatFromSane(C.SANE_Fixed(C.nth_word(p, C.int(i))))
+		o.ConstrSet = append(o.ConstrSet, interface{}(f))
 	}
 }
 
@@ -266,7 +278,7 @@ func parseOpt(d *C.SANE_Option_Descriptor) (o Option) {
 	o.Type = Type(d._type)
 	o.Unit = Unit(d.unit)
 	o.size = int(d.size)
-	if o.Type == TypeInt || o.Type == TypeFixed {
+	if o.Type == TypeInt || o.Type == TypeFloat {
 		o.Length = int(d.size / C.SaneWordSize)
 	} else {
 		o.Length = 1
@@ -275,7 +287,11 @@ func parseOpt(d *C.SANE_Option_Descriptor) (o Option) {
 	case C.SANE_CONSTRAINT_RANGE:
 		parseRangeConstr(d, &o)
 	case C.SANE_CONSTRAINT_WORD_LIST:
-		parseIntConstr(d, &o)
+		if o.Type == TypeInt {
+			parseIntConstr(d, &o)
+		} else {
+			parseFloatConstr(d, &o)
+		}
 	case C.SANE_CONSTRAINT_STRING_LIST:
 		parseStrConstr(d, &o)
 	}
@@ -331,8 +347,10 @@ func (c *Conn) GetOption(name string) (val interface{}, err error) {
 			switch o.Type {
 			case TypeBool:
 				val = interface{}(boolFromSane(*(*C.SANE_Bool)(p)))
-			case TypeInt, TypeFixed:
+			case TypeInt:
 				val = interface{}(int(*(*C.SANE_Int)(p)))
+			case TypeFloat:
+				val = interface{}(floatFromSane(*(*C.SANE_Fixed)(p)))
 			case TypeString:
 				val = interface{}(strFromSane(C.SANE_String_Const(p)))
 			}
@@ -352,17 +370,18 @@ func fillOpt(o Option, val interface{}) (unsafe.Pointer, error) {
 		}
 		q := (*C.SANE_Bool)(p)
 		*q = boolToSane(val.(bool))
-	case TypeInt, TypeFixed:
+	case TypeInt:
 		if _, ok := val.(int); !ok {
 			return nil, fmt.Errorf("option %s expects int arg", o.Name)
 		}
-		if o.Type == TypeInt {
-			q := (*C.SANE_Int)(p)
-			*q = C.SANE_Int(val.(int))
-		} else {
-			q := (*C.SANE_Fixed)(p)
-			*q = C.SANE_Fixed(val.(int))
+		q := (*C.SANE_Int)(p)
+		*q = C.SANE_Int(val.(int))
+	case TypeFloat:
+		if _, ok := val.(float64); !ok {
+			return nil, fmt.Errorf("option %s expects float64 arg", o.Name)
 		}
+		q := (*C.SANE_Fixed)(p)
+		*q = floatToSane(val.(float64))
 	case TypeString:
 		if _, ok := val.(string); !ok {
 			return nil, fmt.Errorf("option %s expects string arg", o.Name)
