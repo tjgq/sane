@@ -214,24 +214,29 @@ type testVal struct {
 // Values to test option setting.
 var testVals = []testVal{
 	{
-		name: "mode",
-		typ:  TypeString,
-		val:  "Color",
-	},
-	{
-		name: "three-pass",
+		name: "enable-test-options",
 		typ:  TypeBool,
 		val:  true,
 	},
 	{
-		name: "depth",
-		typ:  TypeInt,
-		val:  16,
+		name: "bool-soft-select-soft-detect",
+		typ:  TypeBool,
+		val:  true,
 	},
 	{
-		name: "resolution",
+		name: "int",
+		typ:  TypeInt,
+		val:  1,
+	},
+	{
+		name: "fixed",
 		typ:  TypeFloat,
-		val:  100.0,
+		val:  1.0,
+	},
+	{
+		name: "string",
+		typ:  TypeString,
+		val:  "Hello world!",
 	},
 }
 
