@@ -386,39 +386,41 @@ func checkGray(t *testing.T, m *Image) {
 	}
 }
 
-func checkColor(t *testing.T, m *Image) {
+func colorAt(x, y int) color.RGBA {
 	// Areas of 4 x 4 pixels and a distance of 1 pixel between each other
 	// and to the borders. Starting with black to red in a line of 256
 	// areas. The next line is red to black. The 3rd and 4th line is green,
 	// the 5th and 6th blue. The background is medium gray (0x55).
+	xPos, yPos := x/5, y/5
+	if x%5 == 0 || y%5 == 0 {
+		return color.RGBA{0x55, 0x55, 0x55, 0xFF}
+	} else {
+		var s uint8
+		if yPos%2 == 0 {
+			s = uint8(xPos % 0xFF)
+		} else {
+			s = uint8(0xFF - (xPos % 0xFF))
+		}
+		switch yPos % 6 {
+		case 0, 1:
+			return color.RGBA{s, 0, 0, 0xFF}
+		case 2, 3:
+			return color.RGBA{0, s, 0, 0xFF}
+		case 4, 5:
+			return color.RGBA{0, 0, s, 0xFF}
+		}
+	}
+	return color.RGBA{}
+}
+
+func checkColor(t *testing.T, m *Image) {
 	if m.ColorModel() != color.RGBAModel {
 		t.Fatal("bad color model")
 	}
 	b := m.Bounds()
 	for x := 0; x < b.Max.X; x++ {
 		for y := 0; y < b.Max.Y; y++ {
-			var (
-				s uint8
-				c color.RGBA
-			)
-			xPos, yPos := x/5, y/5
-			if x%5 == 0 || y%5 == 0 {
-				c = color.RGBA{0x55, 0x55, 0x55, 0xFF}
-			} else {
-				if yPos%2 == 0 {
-					s = uint8(xPos % 0xFF)
-				} else {
-					s = uint8(0xFF - (xPos % 0xFF))
-				}
-				switch yPos % 6 {
-				case 0, 1:
-					c = color.RGBA{s, 0, 0, 0xFF}
-				case 2, 3:
-					c = color.RGBA{0, s, 0, 0xFF}
-				case 4, 5:
-					c = color.RGBA{0, 0, s, 0xFF}
-				}
-			}
+			c := colorAt(x, y)
 			if m.At(x, y) != c {
 				t.Fatalf("bad pixel at (%d,%d): %v should be %v",
 					x, y, m.At(x, y), c)
