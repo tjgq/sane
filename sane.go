@@ -13,6 +13,7 @@ package sane
 
  // Helpers to avoid unnecessary fiddling around with package unsafe
  SANE_Word nth_word(SANE_Word *p, int n) { return p[n]; }
+ void set_nth_word(SANE_Word *p, int n, SANE_Word v) { p[n] = v; }
  SANE_String_Const nth_string(SANE_String_Const *p, int n) { return p[n]; }
  SANE_Device *nth_device(SANE_Device **p, int n) { return p[n]; }
  const SANE_String_Const *constr_string_list(SANE_Option_Descriptor *d) { return d->constraint.string_list; }
@@ -24,6 +25,7 @@ import "C"
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"unsafe"
 )
 
@@ -362,36 +364,71 @@ func (c *Conn) GetOption(name string) (interface{}, error) {
 	return nil, fmt.Errorf("no option named %s", name)
 }
 
-func fillOpt(o Option, val interface{}) (unsafe.Pointer, error) {
-	v := make([]byte, o.size)
-	p := unsafe.Pointer(&v[0])
+func fillOpt(o Option, v interface{}) (unsafe.Pointer, error) {
+	b := make([]byte, o.size)
+	p := unsafe.Pointer(&b[0])
+	l := int(o.size / C.SaneWordSize)
+
+	s := ""
+	if l > 1 {
+		s = "[]"
+	}
+
 	switch o.Type {
 	case TypeBool:
-		if _, ok := val.(bool); !ok {
-			return nil, fmt.Errorf("option %s expects bool arg", o.Name)
+		if !writeArray(p, reflect.TypeOf(false), l, v) {
+			return nil, fmt.Errorf("option %s expects %sbool arg", s, o.Name)
 		}
-		q := (*C.SANE_Bool)(p)
-		*q = boolToSane(val.(bool))
 	case TypeInt:
-		if _, ok := val.(int); !ok {
-			return nil, fmt.Errorf("option %s expects int arg", o.Name)
+		if !writeArray(p, reflect.TypeOf(0), l, v) {
+			return nil, fmt.Errorf("option %s expects %sint arg", s, o.Name)
 		}
-		q := (*C.SANE_Int)(p)
-		*q = C.SANE_Int(val.(int))
 	case TypeFloat:
-		if _, ok := val.(float64); !ok {
-			return nil, fmt.Errorf("option %s expects float64 arg", o.Name)
+		if !writeArray(p, reflect.TypeOf(0.0), l, v) {
+			return nil, fmt.Errorf("option %s expects %sfloat64 arg", s, o.Name)
 		}
-		q := (*C.SANE_Fixed)(p)
-		*q = floatToSane(val.(float64))
 	case TypeString:
-		if _, ok := val.(string); !ok {
+		if _, ok := v.(string); !ok {
 			return nil, fmt.Errorf("option %s expects string arg", o.Name)
 		}
-		copy(v, val.(string))
-		v[len(v)-1] = byte(0) // ensure null terminator when len(s) == len(v)
+		copy(b, v.(string))
+		b[len(b)-1] = byte(0) // ensure null terminator when len(s) == len(v)
 	}
+
 	return p, nil
+}
+
+func writeArrayAt(p unsafe.Pointer, i int, v reflect.Value) {
+	ptr := (*C.SANE_Word)(p)
+	switch v.Type().Kind() {
+	case reflect.Bool:
+		C.set_nth_word(ptr, C.int(i), C.SANE_Word(boolToSane(v.Bool())))
+	case reflect.Int:
+		C.set_nth_word(ptr, C.int(i), C.SANE_Word(C.SANE_Int(v.Int())))
+	case reflect.Float64:
+		C.set_nth_word(ptr, C.int(i), C.SANE_Word(floatToSane(v.Float())))
+	}
+}
+
+func writeArray(p unsafe.Pointer, t reflect.Type, n int, v interface{}) bool {
+	if n == 1 {
+		if reflect.TypeOf(v) != t {
+			return false
+		}
+		writeArrayAt(p, 0, reflect.ValueOf(v))
+	} else {
+		if reflect.TypeOf(v) != reflect.SliceOf(t) {
+			return false
+		}
+		v := reflect.ValueOf(v)
+		if v.Len() != n {
+			return false
+		}
+		for i := 0; i < n; i++ {
+			writeArrayAt(p, i, v.Index(i))
+		}
+	}
+	return true
 }
 
 // SetOption sets the value of the named option, which should be either of the
