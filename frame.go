@@ -57,9 +57,16 @@ func (c *Conn) ReadFrame() (f *Frame, err error) {
 }
 
 // At returns the sample at coordinates (x,y) for channel ch.
-func (f *Frame) At(x, y, ch int) uint8 {
-	if f.Depth == 8 {
-		return uint8(f.data[f.bytesPerLine*y+f.Channels*x+ch])
+// Note that values are not normalized to the uint16 range,
+// so you need to interpret them relative to the color depth.
+func (f *Frame) At(x, y, ch int) uint16 {
+	switch f.Depth {
+	case 8:
+		i := f.bytesPerLine*y + f.Channels*x + ch
+		return uint16(f.data[i])
+	case 16:
+		i := f.bytesPerLine*y + 2*(f.Channels*x+ch)
+		return uint16(f.data[i+1])<<8 + uint16(f.data[i])
 	}
-	return 0xFF // TODO: support other depths
+	return 0
 }

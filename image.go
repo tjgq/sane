@@ -10,7 +10,10 @@ import (
 	"image/color"
 )
 
-var opaque = uint8(0xff) // no transparency 8-bit alpha value
+var (
+	opaque8  = uint8(0xff)
+	opaque16 = uint16(0xffff)
+)
 
 // Image is a scanned image, corresponding to one or more frames.
 //
@@ -27,11 +30,18 @@ func (m *Image) Bounds() image.Rectangle {
 
 // ColorModel returns the Image's color model.
 func (m *Image) ColorModel() color.Model {
-	if m.fs[0].Format == FrameGray {
+	f := m.fs[0]
+	switch {
+	case f.Depth == 8 && f.Format == FrameGray:
 		return color.GrayModel
-	} else {
+	case f.Depth == 16 && f.Format == FrameGray:
+		return color.Gray16Model
+	case f.Depth == 8 && f.Format != FrameGray:
 		return color.RGBAModel
+	case f.Depth == 16 && f.Format != FrameGray:
+		return color.RGBA64Model
 	}
+	return color.RGBAModel
 }
 
 // At returns the color of the pixel at (x, y).
@@ -39,25 +49,36 @@ func (m *Image) At(x, y int) color.Color {
 	if !(image.Point{x, y}.In(m.Bounds())) {
 		return color.RGBA{}
 	}
-	switch m.fs[0].Format {
-	case FrameRed, FrameGreen, FrameBlue:
-		// non-interleaved RGB
-		return color.RGBA{
-			m.fs[0].At(x, y, 0),
-			m.fs[1].At(x, y, 0),
-			m.fs[2].At(x, y, 0),
-			opaque}
-	case FrameRgb:
-		// interleaved RGB
-		return color.RGBA{
-			m.fs[0].At(x, y, 0),
-			m.fs[0].At(x, y, 1),
-			m.fs[0].At(x, y, 2),
-			opaque}
-	default:
+	if m.fs[0].Format == FrameGray {
 		// grayscale
-		return color.Gray{m.fs[0].At(x, y, 0)}
+		switch m.fs[0].Depth {
+		case 8:
+			return color.Gray{uint8(m.fs[0].At(x, y, 0))}
+		case 16:
+			return color.Gray16{m.fs[0].At(x, y, 0)}
+		}
+	} else {
+		// color
+		var r, g, b uint16
+		if m.fs[0].Format == FrameRgb {
+			// interleaved
+			r = m.fs[0].At(x, y, 0)
+			g = m.fs[0].At(x, y, 1)
+			b = m.fs[0].At(x, y, 2)
+		} else {
+			// non-interleaved
+			r = m.fs[0].At(x, y, 0)
+			g = m.fs[1].At(x, y, 0)
+			b = m.fs[2].At(x, y, 0)
+		}
+		switch m.fs[0].Depth {
+		case 8:
+			return color.RGBA{uint8(r), uint8(g), uint8(b), opaque8}
+		case 16:
+			return color.RGBA64{r, g, b, opaque16}
+		}
 	}
+	return color.RGBA{} // shouldn't happen
 }
 
 // ReadImage reads an image from the connection.
