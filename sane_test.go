@@ -515,11 +515,26 @@ func runTest(t *testing.T, n int, f func(i int, c *Conn)) {
 	}
 }
 
+func setResAndSize(t *testing.T, c *Conn, depth int) {
+	// Use an appropriate size to reveal the whole test image.
+	switch depth {
+	case 8:
+		setOption(t, c, "resolution", 200.0)
+		setOption(t, c, "br-x", 200.0)
+		setOption(t, c, "br-y", 20.0)
+	case 16:
+		setOption(t, c, "resolution", 100.0)
+		setOption(t, c, "br-x", 200.0)
+		setOption(t, c, "br-y", 200.0)
+	}
+}
+
 func runGrayTest(t *testing.T, depth int, n int, f func(i int, c *Conn)) {
 	runTest(t, n, func(i int, c *Conn) {
 		setOption(t, c, "mode", "Gray")
 		setOption(t, c, "depth", depth)
 		setOption(t, c, "test-picture", "Color pattern")
+		setResAndSize(t, c, depth)
 		if f != nil {
 			f(i, c)
 		}
@@ -532,6 +547,7 @@ func runColorTest(t *testing.T, depth int, n int, f func(i int, c *Conn)) {
 		setOption(t, c, "mode", "Color")
 		setOption(t, c, "depth", depth)
 		setOption(t, c, "test-picture", "Color pattern")
+		setResAndSize(t, c, depth)
 		if f != nil {
 			f(i, c)
 		}
