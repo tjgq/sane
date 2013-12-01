@@ -229,6 +229,11 @@ var testVals = []testVal{
 		val:  1,
 	},
 	{
+		name: "int-constraint-array",
+		typ:  TypeInt,
+		val:  []int{1, 2, 3, 4, 5, 6},
+	},
+	{
 		name: "fixed",
 		typ:  TypeFloat,
 		val:  1.0,
@@ -500,26 +505,11 @@ func TestGetOptions(t *testing.T) {
 func TestSetOptions(t *testing.T) {
 	runTest(t, len(testVals), func(i int, c *Conn) {
 		optName := testVals[i].name
-		optType := testVals[i].typ
+		//optType := testVals[i].typ
 		optVal := testVals[i].val
 		setOption(t, c, optName, optVal)
 		v := getOption(t, c, optName)
-		var fail bool
-		switch optType {
-		case TypeBool:
-			b, ok := v.(bool)
-			fail = !ok || b != optVal
-		case TypeInt:
-			i, ok := v.(int)
-			fail = !ok || i != optVal
-		case TypeFloat:
-			f, ok := v.(float64)
-			fail = !ok || f != optVal
-		case TypeString:
-			s, ok := v.(string)
-			fail = !ok || s != optVal
-		}
-		if fail {
+		if !reflect.DeepEqual(interface{}(optVal), v) {
 			t.Errorf("get option %s returned wrong value: %v should be %v",
 				optName, v, optVal)
 		}
