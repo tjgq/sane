@@ -367,9 +367,9 @@ func gray8At(x, y int) color.Gray {
 	case x%5 == 0 || y%5 == 0:
 		return color.Gray{0x55}
 	case yPos%2 == 0:
-		return color.Gray{uint8(xPos % 0xFF)}
+		return color.Gray{uint8(xPos % 0x100)}
 	case yPos%2 == 1:
-		return color.Gray{0xFF - uint8(xPos%0xFF)}
+		return color.Gray{uint8(0xFF - (xPos % 0x100))}
 	}
 	return color.Gray{} // shouldn't happen
 }
@@ -429,9 +429,9 @@ func color8At(x, y int) color.RGBA {
 	} else {
 		var s uint8
 		if yPos%2 == 0 {
-			s = uint8(xPos % 0xFF)
+			s = uint8(xPos % 0x100)
 		} else {
-			s = uint8(0xFF - (xPos % 0xFF))
+			s = uint8(0xFF - (xPos % 0x100))
 		}
 		switch yPos % 6 {
 		case 0, 1:
