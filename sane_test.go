@@ -386,7 +386,7 @@ func checkGray(t *testing.T, m *Image) {
 	}
 }
 
-func colorAt(x, y int) color.RGBA {
+func color8At(x, y int) color.RGBA {
 	// Areas of 4 x 4 pixels and a distance of 1 pixel between each other
 	// and to the borders. Starting with black to red in a line of 256
 	// areas. The next line is red to black. The 3rd and 4th line is green,
@@ -410,17 +410,54 @@ func colorAt(x, y int) color.RGBA {
 			return color.RGBA{0, 0, s, 0xFF}
 		}
 	}
-	return color.RGBA{}
+	return color.RGBA{} // shouldn't happen
 }
 
-func checkColor(t *testing.T, m *Image) {
-	if m.ColorModel() != color.RGBAModel {
-		t.Fatal("bad color model")
+func color16At(x, y int) color.RGBA64 {
+	// Areas of 256 x 256 pixels and a distance of 4 pixels between each other
+	// and to the borders. Inside the areas, the color starts with black at
+	// the left side and is red at the right side. The low byte of the color
+	// starts at 0 at the top and goes down to 256. The second rightmost area
+	// is green, the third blue. The background is medium gray (0x5555). If
+	// the areas are colored from top to bottom and not from left to right,
+	// the byte order is wrong (or there is a bug in the test backend).
+	xArea := x / 260
+	xPos, yPos := x%260, y%260
+	if xPos < 4 || yPos < 4 {
+		return color.RGBA64{0x5555, 0x5555, 0x5555, 0xFFFF}
+	} else {
+		s := uint16((xPos-4)<<8 + (yPos - 4))
+		switch xArea % 3 {
+		case 0:
+			return color.RGBA64{s, 0, 0, 0xFFFF}
+		case 1:
+			return color.RGBA64{0, s, 0, 0xFFFF}
+		case 2:
+			return color.RGBA64{0, 0, s, 0xFFFF}
+		}
+	}
+	return color.RGBA64{} // shouldn't happen
+}
+
+func colorAt(x, y, depth int) color.Color {
+	switch depth {
+	case 8:
+		return color8At(x, y)
+	case 16:
+		return color16At(x, y)
+	}
+	return color.RGBA{} // shouldn't happen
+}
+
+func checkColor(t *testing.T, m *Image, d int) {
+	c := m.ColorModel()
+	if (d == 8 && c != color.RGBAModel) || (d == 16 && c != color.RGBA64Model) {
+		t.Fatalf("bad color model: %v", c)
 	}
 	b := m.Bounds()
 	for x := 0; x < b.Max.X; x++ {
 		for y := 0; y < b.Max.Y; y++ {
-			c := colorAt(x, y)
+			c := colorAt(x, y, d)
 			if m.At(x, y) != c {
 				t.Fatalf("bad pixel at (%d,%d): %v should be %v",
 					x, y, m.At(x, y), c)
@@ -457,14 +494,15 @@ func runGrayTest(t *testing.T, n int, f func(i int, c *Conn)) {
 	})
 }
 
-func runColorTest(t *testing.T, n int, f func(i int, c *Conn)) {
+func runColorTest(t *testing.T, depth int, n int, f func(i int, c *Conn)) {
 	runTest(t, n, func(i int, c *Conn) {
 		setOption(t, c, "mode", "Color")
+		setOption(t, c, "depth", depth)
 		setOption(t, c, "test-picture", "Color pattern")
 		if f != nil {
 			f(i, c)
 		}
-		checkColor(t, readImage(t, c))
+		checkColor(t, readImage(t, c), depth)
 	})
 }
 
@@ -527,35 +565,35 @@ func TestGrayTwice(t *testing.T) {
 }
 
 func TestColor(t *testing.T) {
-	runColorTest(t, 1, nil)
+	runColorTest(t, 8, 1, nil)
 }
 
 func TestColorTwice(t *testing.T) {
-	runColorTest(t, 2, nil)
+	runColorTest(t, 8, 2, nil)
 }
 
 func TestThreePass(t *testing.T) {
 	order := []string{"RGB", "RBG", "GBR", "GRB", "BRG", "BGR"}
-	runColorTest(t, len(order), func(i int, c *Conn) {
+	runColorTest(t, 8, len(order), func(i int, c *Conn) {
 		setOption(t, c, "three-pass", true)
 		setOption(t, c, "three-pass-order", order[i])
 	})
 }
 
 func TestHandScanner(t *testing.T) {
-	runColorTest(t, 1, func(i int, c *Conn) {
+	runColorTest(t, 8, 1, func(i int, c *Conn) {
 		setOption(t, c, "hand-scanner", true)
 	})
 }
 
 func TestPadding(t *testing.T) {
-	runColorTest(t, 1, func(i int, c *Conn) {
+	runColorTest(t, 8, 1, func(i int, c *Conn) {
 		setOption(t, c, "ppl-loss", 7)
 	})
 }
 
 func TestFuzzyParams(t *testing.T) {
-	runColorTest(t, 1, func(i int, c *Conn) {
+	runColorTest(t, 8, 1, func(i int, c *Conn) {
 		setOption(t, c, "fuzzy-parameters", true)
 	})
 }
@@ -595,7 +633,7 @@ func TestFeeder(t *testing.T) {
 			setOption(t, c, "test-picture", "Color pattern")
 		}
 		if i < 10 {
-			checkColor(t, readImage(t, c))
+			checkColor(t, readImage(t, c), 8)
 		} else if _, err := c.ReadImage(); err != ErrEmpty {
 			t.Fatalf("feeder not empty after 10 pages")
 		}
@@ -612,7 +650,7 @@ func TestFeederThreePass(t *testing.T) {
 			setOption(t, c, "three-pass", true)
 		}
 		if i < 10 {
-			checkColor(t, readImage(t, c))
+			checkColor(t, readImage(t, c), 8)
 		} else if _, err := c.ReadImage(); err != ErrEmpty {
 			t.Fatalf("feeder not empty after 10 pages")
 		}
@@ -632,4 +670,8 @@ func TestCancel(t *testing.T) {
 				err, ErrCancelled)
 		}
 	})
+}
+
+func TestColor16(t *testing.T) {
+	runColorTest(t, 16, 1, nil)
 }
