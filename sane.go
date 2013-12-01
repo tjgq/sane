@@ -335,7 +335,7 @@ func (c *Conn) Options() (opts []Option) {
 
 // GetOption gets the current value for the named option. If successful, it
 // returns a value of the appropriate type for the option.
-func (c *Conn) GetOption(name string) (val interface{}, err error) {
+func (c *Conn) GetOption(name string) (interface{}, error) {
 	var p unsafe.Pointer
 	for _, o := range c.Options() {
 		if o.Name == name {
@@ -349,15 +349,14 @@ func (c *Conn) GetOption(name string) (val interface{}, err error) {
 			}
 			switch o.Type {
 			case TypeBool:
-				val = interface{}(boolFromSane(*(*C.SANE_Bool)(p)))
+				return interface{}(boolFromSane(*(*C.SANE_Bool)(p))), nil
 			case TypeInt:
-				val = interface{}(int(*(*C.SANE_Int)(p)))
+				return interface{}(int(*(*C.SANE_Int)(p))), nil
 			case TypeFloat:
-				val = interface{}(floatFromSane(*(*C.SANE_Fixed)(p)))
+				return interface{}(floatFromSane(*(*C.SANE_Fixed)(p))), nil
 			case TypeString:
-				val = interface{}(strFromSane(C.SANE_String_Const(p)))
+				return interface{}(strFromSane(C.SANE_String_Const(p))), nil
 			}
-			return val, err
 		}
 	}
 	return nil, fmt.Errorf("no option named %s", name)
