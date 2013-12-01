@@ -397,19 +397,19 @@ func fillOpt(o Option, val interface{}) (unsafe.Pointer, error) {
 // SetOption sets the value of the named option, which should be either of the
 // corresponding type, or Auto for automatic mode. If successful, info contains
 // information on the effects of setting the option.
-func (c *Conn) SetOption(name string, val interface{}) (info Info, err error) {
+func (c *Conn) SetOption(name string, v interface{}) (info Info, err error) {
 	var (
 		s C.SANE_Status
 		i C.SANE_Int
 	)
 	for _, o := range c.Options() {
 		if o.Name == name {
-			if _, ok := val.(autoType); ok {
+			if _, ok := v.(autoType); ok {
 				// automatic mode
 				s = C.sane_control_option(c.handle, C.SANE_Int(o.index),
 					C.SANE_ACTION_SET_AUTO, nil, &i)
 			} else {
-				p, err := fillOpt(o, val)
+				p, err := fillOpt(o, v)
 				if err != nil {
 					return info, err
 				}
