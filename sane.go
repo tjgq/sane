@@ -12,9 +12,9 @@ package sane
  #define SaneWordSize sizeof(SANE_Word)
 
  // Helpers to avoid unnecessary fiddling around with package unsafe
- SANE_Word nth_word(SANE_Word *v, int n) { return v[n]; }
- SANE_String_Const nth_string(SANE_String_Const *v, int n) { return v[n]; }
- SANE_Device *nth_device(SANE_Device **v, int n) { return v[n]; }
+ SANE_Word nth_word(SANE_Word *p, int n) { return p[n]; }
+ SANE_String_Const nth_string(SANE_String_Const *p, int n) { return p[n]; }
+ SANE_Device *nth_device(SANE_Device **p, int n) { return p[n]; }
  const SANE_String_Const *constr_string_list(SANE_Option_Descriptor *d) { return d->constraint.string_list; }
  const SANE_Word *constr_word_list(SANE_Option_Descriptor *d) { return d->constraint.word_list; }
  const SANE_Range *constr_range(SANE_Option_Descriptor *d) { return d->constraint.range; }
