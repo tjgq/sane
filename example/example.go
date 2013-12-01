@@ -114,7 +114,11 @@ func printOption(o sane.Option, v interface{}) {
 	if v != nil {
 		print(" [%v]", v)
 	} else {
-		print(" [?]")
+		if !o.IsActive {
+			print(" [inactive]")
+		} else {
+			print(" [?]")
+		}
 	}
 
 	// Print unit
