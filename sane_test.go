@@ -357,27 +357,31 @@ func readImage(t *testing.T, c *Conn) *Image {
 	return m
 }
 
-func checkGray(t *testing.T, m *Image) {
+func grayAt(x, y int) color.Gray {
 	// Areas of 4 x 4 pixels and a distance of 1 pixel between each other
 	// and to the borders. Starting with black to white in a line of 256
 	// areas. The next line is white to black. The background is medium
 	// gray (0x55).
+	xPos, yPos := x/5, y/5
+	switch {
+	case x%5 == 0 || y%5 == 0:
+		return color.Gray{0x55}
+	case yPos%2 == 0:
+		return color.Gray{uint8(xPos % 0xFF)}
+	case yPos%2 == 1:
+		return color.Gray{0xFF - uint8(xPos%0xFF)}
+	}
+	return color.Gray{} // shouldn't happen
+}
+
+func checkGray(t *testing.T, m *Image) {
 	if m.ColorModel() != color.GrayModel {
 		t.Fatal("bad color model")
 	}
 	b := m.Bounds()
 	for x := 0; x < b.Max.X; x++ {
 		for y := 0; y < b.Max.Y; y++ {
-			var c color.Gray
-			xPos, yPos := x/5, y/5
-			switch {
-			case x%5 == 0 || y%5 == 0:
-				c = color.Gray{0x55}
-			case yPos%2 == 0:
-				c = color.Gray{uint8(xPos % 0xFF)}
-			case yPos%2 == 1:
-				c = color.Gray{0xFF - uint8(xPos%0xFF)}
-			}
+			c := grayAt(x, y)
 			if m.At(x, y) != c {
 				t.Fatalf("bad pixel at (%d,%d): %v should be %v",
 					x, y, m.At(x, y), c)
