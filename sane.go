@@ -403,15 +403,15 @@ func fillOpt(o Option, v interface{}) (unsafe.Pointer, error) {
 	switch o.Type {
 	case TypeBool:
 		if !writeArray(p, reflect.TypeOf(false), l, v) {
-			return nil, fmt.Errorf("option %s expects %sbool arg", s, o.Name)
+			return nil, fmt.Errorf("option %s expects %sbool arg", o.Name, s)
 		}
 	case TypeInt:
 		if !writeArray(p, reflect.TypeOf(0), l, v) {
-			return nil, fmt.Errorf("option %s expects %sint arg", s, o.Name)
+			return nil, fmt.Errorf("option %s expects %sint arg", o.Name, s)
 		}
 	case TypeFloat:
 		if !writeArray(p, reflect.TypeOf(0.0), l, v) {
-			return nil, fmt.Errorf("option %s expects %sfloat64 arg", s, o.Name)
+			return nil, fmt.Errorf("option %s expects %sfloat64 arg", o.Name, s)
 		}
 	case TypeString:
 		if _, ok := v.(string); !ok {
