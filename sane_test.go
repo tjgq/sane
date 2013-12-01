@@ -359,6 +359,17 @@ func readImage(t *testing.T, c *Conn) *Image {
 	return m
 }
 
+func gray1At(x, y int) color.Gray {
+	// Alternating white and black areas of 16 x 16 pixels.
+	// The top left one is white.
+	xPos, yPos := (x/16)%2, (y/16)%2
+	if xPos^yPos == 0 {
+		return color.Gray{0xFF}
+	} else {
+		return color.Gray{0x00}
+	}
+}
+
 func gray8At(x, y int) color.Gray {
 	// Areas of 4 x 4 pixels and a distance of 1 pixel between each other
 	// and to the borders. Starting with black to white in a line of 256
@@ -395,6 +406,8 @@ func gray16At(x, y int) color.Gray16 {
 
 func grayAt(x, y, depth int) color.Color {
 	switch depth {
+	case 1:
+		return gray1At(x, y)
 	case 8:
 		return gray8At(x, y)
 	case 16:
@@ -405,7 +418,7 @@ func grayAt(x, y, depth int) color.Color {
 
 func checkGray(t *testing.T, m *Image, d int) {
 	c := m.ColorModel()
-	if (d == 8 && c != color.GrayModel) || (d == 16 && c != color.Gray16Model) {
+	if (d != 16 && c != color.GrayModel) || (d == 16 && c != color.Gray16Model) {
 		t.Fatalf("bad color model: %v", c)
 	}
 	b := m.Bounds()
@@ -519,12 +532,11 @@ func runTest(t *testing.T, n int, f func(i int, c *Conn)) {
 
 func setResAndSize(t *testing.T, c *Conn, depth int) {
 	// Use an appropriate size to reveal the whole test image.
-	switch depth {
-	case 8:
+	if depth != 16 {
 		setOption(t, c, "resolution", 200.0)
 		setOption(t, c, "br-x", 200.0)
 		setOption(t, c, "br-y", 20.0)
-	case 16:
+	} else {
 		setOption(t, c, "resolution", 100.0)
 		setOption(t, c, "br-x", 200.0)
 		setOption(t, c, "br-y", 200.0)
@@ -720,6 +732,10 @@ func TestCancel(t *testing.T) {
 				err, ErrCancelled)
 		}
 	})
+}
+
+func TestGrayBitmap(t *testing.T) {
+	runGrayTest(t, 1, 1, nil)
 }
 
 func TestColor16(t *testing.T) {
