@@ -46,7 +46,7 @@ func (m *Image) ColorModel() color.Model {
 
 // At returns the color of the pixel at (x, y).
 func (m *Image) At(x, y int) color.Color {
-	if !(image.Point{x, y}.In(m.Bounds())) {
+	if x < 0 || x >= m.fs[0].Width || y < 0 || y >= m.fs[0].Height {
 		return color.RGBA{}
 	}
 	if m.fs[0].Format == FrameGray {
