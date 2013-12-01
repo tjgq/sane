@@ -61,6 +61,15 @@ func (c *Conn) ReadFrame() (f *Frame, err error) {
 // so you need to interpret them relative to the color depth.
 func (f *Frame) At(x, y, ch int) uint16 {
 	switch f.Depth {
+	case 1:
+		i := f.bytesPerLine*y + f.Channels*(x/8) + ch
+		s := (f.data[i] >> uint8(x%8)) & 0x01
+		if f.Format == FrameGray {
+			// For B&W lineart, 0 is white and 1 is black
+			return uint16(s ^ 0x1)
+		} else {
+			return uint16(s)
+		}
 	case 8:
 		i := f.bytesPerLine*y + f.Channels*x + ch
 		return uint16(f.data[i])

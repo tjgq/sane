@@ -32,11 +32,11 @@ func (m *Image) Bounds() image.Rectangle {
 func (m *Image) ColorModel() color.Model {
 	f := m.fs[0]
 	switch {
-	case f.Depth == 8 && f.Format == FrameGray:
+	case f.Depth != 16 && f.Format == FrameGray:
 		return color.GrayModel
 	case f.Depth == 16 && f.Format == FrameGray:
 		return color.Gray16Model
-	case f.Depth == 8 && f.Format != FrameGray:
+	case f.Depth != 16 && f.Format != FrameGray:
 		return color.RGBAModel
 	case f.Depth == 16 && f.Format != FrameGray:
 		return color.RGBA64Model
@@ -52,6 +52,8 @@ func (m *Image) At(x, y int) color.Color {
 	if m.fs[0].Format == FrameGray {
 		// grayscale
 		switch m.fs[0].Depth {
+		case 1:
+			return color.Gray{uint8(0xFF * m.fs[0].At(x, y, 0))}
 		case 8:
 			return color.Gray{uint8(m.fs[0].At(x, y, 0))}
 		case 16:
@@ -72,6 +74,8 @@ func (m *Image) At(x, y int) color.Color {
 			b = m.fs[2].At(x, y, 0)
 		}
 		switch m.fs[0].Depth {
+		case 1:
+			return color.RGBA{uint8(0xFF * r), uint8(0xFF * g), uint8(0xFF * b), opaque8}
 		case 8:
 			return color.RGBA{uint8(r), uint8(g), uint8(b), opaque8}
 		case 16:
