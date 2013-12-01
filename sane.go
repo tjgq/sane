@@ -335,6 +335,32 @@ func (c *Conn) Options() (opts []Option) {
 	return
 }
 
+func readArrayAt(p unsafe.Pointer, i int, t reflect.Type) interface{} {
+	ptr := (*C.SANE_Word)(p)
+	switch t.Kind() {
+	case reflect.Bool:
+		return interface{}(boolFromSane(C.SANE_Bool(C.nth_word(ptr, C.int(i)))))
+	case reflect.Int:
+		return interface{}(int(C.nth_word(ptr, C.int(i))))
+	case reflect.Float64:
+		return interface{}(floatFromSane(C.SANE_Fixed(C.nth_word(ptr, C.int(i)))))
+	default:
+		return nil
+	}
+}
+
+func readArray(p unsafe.Pointer, t reflect.Type, n int) interface{} {
+	if n == 1 {
+		return readArrayAt(p, 0, t)
+	} else {
+		v := reflect.MakeSlice(reflect.SliceOf(t), 0, n)
+		for i := 0; i < n; i++ {
+			v = reflect.Append(v, reflect.ValueOf(readArrayAt(p, i, t)))
+		}
+		return v.Interface()
+	}
+}
+
 // GetOption gets the current value for the named option. If successful, it
 // returns a value of the appropriate type for the option.
 func (c *Conn) GetOption(name string) (interface{}, error) {
@@ -351,11 +377,11 @@ func (c *Conn) GetOption(name string) (interface{}, error) {
 			}
 			switch o.Type {
 			case TypeBool:
-				return interface{}(boolFromSane(*(*C.SANE_Bool)(p))), nil
+				return readArray(p, reflect.TypeOf(false), o.Length), nil
 			case TypeInt:
-				return interface{}(int(*(*C.SANE_Int)(p))), nil
+				return readArray(p, reflect.TypeOf(0), o.Length), nil
 			case TypeFloat:
-				return interface{}(floatFromSane(*(*C.SANE_Fixed)(p))), nil
+				return readArray(p, reflect.TypeOf(0.0), o.Length), nil
 			case TypeString:
 				return interface{}(strFromSane(C.SANE_String_Const(p))), nil
 			}
