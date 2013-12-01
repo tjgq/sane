@@ -755,6 +755,13 @@ func TestColorBitmap(t *testing.T) {
 	runColorTest(t, 1, 1, nil)
 }
 
+func TestThreePassBitmap(t *testing.T) {
+	runColorTest(t, 1, len(threePassOrder), func(i int, c *Conn) {
+		setOption(t, c, "three-pass", true)
+		setOption(t, c, "three-pass-order", threePassOrder[i])
+	})
+}
+
 func TestColor16(t *testing.T) {
 	runColorTest(t, 16, 1, nil)
 }
