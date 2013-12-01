@@ -13,6 +13,8 @@ import (
 
 const TestDevice = "test" // the sane test device
 
+var threePassOrder = []string{"RGB", "RBG", "GBR", "GRB", "BRG", "BGR"}
+
 var not = map[bool]string{
 	true:  "",
 	false: "not ",
@@ -622,10 +624,9 @@ func TestColorTwice(t *testing.T) {
 }
 
 func TestThreePass(t *testing.T) {
-	order := []string{"RGB", "RBG", "GBR", "GRB", "BRG", "BGR"}
-	runColorTest(t, 8, len(order), func(i int, c *Conn) {
+	runColorTest(t, 8, len(threePassOrder), func(i int, c *Conn) {
 		setOption(t, c, "three-pass", true)
-		setOption(t, c, "three-pass-order", order[i])
+		setOption(t, c, "three-pass-order", threePassOrder[i])
 	})
 }
 
@@ -723,6 +724,13 @@ func TestCancel(t *testing.T) {
 
 func TestColor16(t *testing.T) {
 	runColorTest(t, 16, 1, nil)
+}
+
+func TestThreePass16(t *testing.T) {
+	runColorTest(t, 16, len(threePassOrder), func(i int, c *Conn) {
+		setOption(t, c, "three-pass", true)
+		setOption(t, c, "three-pass-order", threePassOrder[i])
+	})
 }
 
 func TestGray16(t *testing.T) {
