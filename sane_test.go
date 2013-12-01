@@ -380,7 +380,7 @@ func checkGray(t *testing.T, m *Image) {
 			}
 			if m.At(x, y) != c {
 				t.Fatalf("bad pixel at (%d,%d): %v should be %v",
-					x, y, xPos, yPos, m.At(x, y), c)
+					x, y, m.At(x, y), c)
 			}
 		}
 	}
