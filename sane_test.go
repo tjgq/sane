@@ -357,7 +357,7 @@ func readImage(t *testing.T, c *Conn) *Image {
 	return m
 }
 
-func grayAt(x, y int) color.Gray {
+func gray8At(x, y int) color.Gray {
 	// Areas of 4 x 4 pixels and a distance of 1 pixel between each other
 	// and to the borders. Starting with black to white in a line of 256
 	// areas. The next line is white to black. The background is medium
@@ -374,14 +374,42 @@ func grayAt(x, y int) color.Gray {
 	return color.Gray{} // shouldn't happen
 }
 
-func checkGray(t *testing.T, m *Image) {
-	if m.ColorModel() != color.GrayModel {
-		t.Fatal("bad color model")
+func gray16At(x, y int) color.Gray16 {
+	// Areas of 256 x 256 pixels and a distance of 4 pixels between each other
+	// and to the borders. Inside the areas, the color starts with black at
+	// the left side and is white at the right side. The low byte of the color
+	// starts at 0 at the top and goes down to 256. The background is medium
+	// gray (0x5555). If the areas are "colored" from top to bottom and not
+	// from left to right, the byte order is wrong (or there is a bug in the
+	// test backend).
+	xPos, yPos := x%260, y%260
+	if xPos < 4 || yPos < 4 {
+		return color.Gray16{0x5555}
+	} else {
+		return color.Gray16{uint16((xPos-4)<<8 + (yPos - 4))}
+	}
+	return color.Gray16{} // shouldn't happen
+}
+
+func grayAt(x, y, depth int) color.Color {
+	switch depth {
+	case 8:
+		return gray8At(x, y)
+	case 16:
+		return gray16At(x, y)
+	}
+	return color.Gray{} // shouldn't happen
+}
+
+func checkGray(t *testing.T, m *Image, d int) {
+	c := m.ColorModel()
+	if (d == 8 && c != color.GrayModel) || (d == 16 && c != color.Gray16Model) {
+		t.Fatalf("bad color model: %v", c)
 	}
 	b := m.Bounds()
 	for x := 0; x < b.Max.X; x++ {
 		for y := 0; y < b.Max.Y; y++ {
-			c := grayAt(x, y)
+			c := grayAt(x, y, d)
 			if m.At(x, y) != c {
 				t.Fatalf("bad pixel at (%d,%d): %v should be %v",
 					x, y, m.At(x, y), c)
@@ -487,14 +515,15 @@ func runTest(t *testing.T, n int, f func(i int, c *Conn)) {
 	}
 }
 
-func runGrayTest(t *testing.T, n int, f func(i int, c *Conn)) {
+func runGrayTest(t *testing.T, depth int, n int, f func(i int, c *Conn)) {
 	runTest(t, n, func(i int, c *Conn) {
 		setOption(t, c, "mode", "Gray")
+		setOption(t, c, "depth", depth)
 		setOption(t, c, "test-picture", "Color pattern")
 		if f != nil {
 			f(i, c)
 		}
-		checkGray(t, readImage(t, c))
+		checkGray(t, readImage(t, c), depth)
 	})
 }
 
@@ -561,11 +590,11 @@ func TestSetOptions(t *testing.T) {
 }
 
 func TestGray(t *testing.T) {
-	runGrayTest(t, 1, nil)
+	runGrayTest(t, 8, 1, nil)
 }
 
 func TestGrayTwice(t *testing.T) {
-	runGrayTest(t, 2, nil)
+	runGrayTest(t, 8, 2, nil)
 }
 
 func TestColor(t *testing.T) {
@@ -678,4 +707,8 @@ func TestCancel(t *testing.T) {
 
 func TestColor16(t *testing.T) {
 	runColorTest(t, 16, 1, nil)
+}
+
+func TestGray16(t *testing.T) {
+	runGrayTest(t, 16, 1, nil)
 }
