@@ -433,6 +433,17 @@ func checkGray(t *testing.T, m *Image, d int) {
 	}
 }
 
+func color1At(x, y int) color.RGBA {
+	// Color areas of 16 x 16 pixels. The top left one is black. There are 8
+	// colors from white to black in horizontal direction. The second line
+	// of color areas starts with white.
+	xPos, yPos := x/16, y/16
+	r := ((xPos >> 2) & 0x1) ^ (yPos % 2)
+	g := ((xPos >> 1) & 0x1) ^ (yPos % 2)
+	b := (xPos & 0x1) ^ (yPos % 2)
+	return color.RGBA{uint8(0xFF * r), uint8(0xFF * g), uint8(0xFF * b), opaque8}
+}
+
 func color8At(x, y int) color.RGBA {
 	// Areas of 4 x 4 pixels and a distance of 1 pixel between each other
 	// and to the borders. Starting with black to red in a line of 256
@@ -488,6 +499,8 @@ func color16At(x, y int) color.RGBA64 {
 
 func colorAt(x, y, depth int) color.Color {
 	switch depth {
+	case 1:
+		return color1At(x, y)
 	case 8:
 		return color8At(x, y)
 	case 16:
@@ -736,6 +749,10 @@ func TestCancel(t *testing.T) {
 
 func TestGrayBitmap(t *testing.T) {
 	runGrayTest(t, 1, 1, nil)
+}
+
+func TestColorBitmap(t *testing.T) {
+	runColorTest(t, 1, 1, nil)
 }
 
 func TestColor16(t *testing.T) {
