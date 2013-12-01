@@ -230,6 +230,9 @@ func showOptions(name string) {
 	lastGroup := ""
 	print("Options for device %s:\n", c.Device)
 	for _, o := range c.Options() {
+		if !o.IsSettable {
+			continue
+		}
 		if o.Group != lastGroup {
 			print("  %s:\n", o.Group)
 			lastGroup = o.Group
