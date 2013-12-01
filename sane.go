@@ -15,6 +15,9 @@ package sane
  SANE_Word nth_word(SANE_Word *v, int n) { return v[n]; }
  SANE_String_Const nth_string(SANE_String_Const *v, int n) { return v[n]; }
  SANE_Device *nth_device(SANE_Device **v, int n) { return v[n]; }
+ const SANE_String_Const *constr_string_list(SANE_Option_Descriptor *d) { return d->constraint.string_list; }
+ const SANE_Word *constr_word_list(SANE_Option_Descriptor *d) { return d->constraint.word_list; }
+ const SANE_Range *constr_range(SANE_Option_Descriptor *d) { return d->constraint.range; }
 */
 import "C"
 
@@ -232,7 +235,7 @@ func (c *Conn) Start() error {
 }
 
 func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
-	r := *(**C.SANE_Range)(unsafe.Pointer(&d.constraint))
+	r := C.constr_range(d)
 	switch o.Type {
 	case TypeInt:
 		o.ConstrRange = &Range{int(r.min), int(r.max), int(r.quant)}
@@ -245,7 +248,7 @@ func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
 }
 
 func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
-	p := *(**C.SANE_Word)(unsafe.Pointer(&d.constraint))
+	p := C.constr_word_list(d)
 	// First word is number of remaining words in array.
 	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
 		i := int(C.nth_word(p, C.int(i)))
@@ -254,7 +257,7 @@ func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
 }
 
 func parseFloatConstr(d *C.SANE_Option_Descriptor, o *Option) {
-	p := *(**C.SANE_Word)(unsafe.Pointer(&d.constraint))
+	p := C.constr_word_list(d)
 	// First word is number of remaining words in array.
 	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
 		f := floatFromSane(C.SANE_Fixed(C.nth_word(p, C.int(i))))
@@ -263,7 +266,7 @@ func parseFloatConstr(d *C.SANE_Option_Descriptor, o *Option) {
 }
 
 func parseStrConstr(d *C.SANE_Option_Descriptor, o *Option) {
-	p := *(**C.SANE_String_Const)(unsafe.Pointer(&d.constraint))
+	p := C.constr_string_list(d)
 	// Array is null-terminated.
 	for n := 0; C.nth_string(p, C.int(n)) != nil; n++ {
 		s := strFromSane(C.nth_string(p, C.int(n)))
