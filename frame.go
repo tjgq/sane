@@ -6,6 +6,7 @@ package sane
 
 import (
 	"bytes"
+	"fmt"
 )
 
 type Frame struct {
@@ -28,6 +29,10 @@ func (c *Conn) ReadFrame() (f *Frame, err error) {
 	p, err := c.Params()
 	if err != nil {
 		return nil, err
+	}
+
+	if p.Depth != 1 && p.Depth != 8 && p.Depth != 16 {
+		return nil, fmt.Errorf("unsupported bit depth: %d", p.Depth)
 	}
 
 	data := new(bytes.Buffer)
