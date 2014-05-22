@@ -398,10 +398,8 @@ func gray16At(x, y int) color.Gray16 {
 	xPos, yPos := x%260, y%260
 	if xPos < 4 || yPos < 4 {
 		return color.Gray16{0x5555}
-	} else {
-		return color.Gray16{uint16((xPos-4)<<8 + (yPos - 4))}
 	}
-	return color.Gray16{} // shouldn't happen
+	return color.Gray16{uint16((xPos-4)<<8 + (yPos - 4))}
 }
 
 func grayAt(x, y, depth int) color.Color {
