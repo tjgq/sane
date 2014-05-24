@@ -160,7 +160,7 @@ func mkError(s C.SANE_Status) Error {
 }
 
 func boolFromSane(b C.SANE_Bool) bool {
-	return b == C.SANE_TRUE
+	return b != C.SANE_FALSE
 }
 
 func boolToSane(b bool) C.SANE_Bool {
