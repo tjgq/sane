@@ -11,11 +11,7 @@ package sane
 
  #define SaneWordSize sizeof(SANE_Word)
 
- // Helpers to avoid unnecessary fiddling around with package unsafe
- SANE_Word nth_word(SANE_Word *p, int n) { return p[n]; }
- void set_nth_word(SANE_Word *p, int n, SANE_Word v) { p[n] = v; }
- SANE_String_Const nth_string(SANE_String_Const *p, int n) { return p[n]; }
- SANE_Device *nth_device(SANE_Device **p, int n) { return p[n]; }
+ // C union member accessors
  const SANE_String_Const *constr_string_list(SANE_Option_Descriptor *d) { return d->constraint.string_list; }
  const SANE_Word *constr_word_list(SANE_Option_Descriptor *d) { return d->constraint.word_list; }
  const SANE_Range *constr_range(SANE_Option_Descriptor *d) { return d->constraint.range; }
@@ -159,15 +155,23 @@ func mkError(s C.SANE_Status) Error {
 	return fmt.Errorf("unknown error code %d", int(s))
 }
 
-func boolFromSane(b C.SANE_Bool) bool {
+func boolFromSane(b C.SANE_Word) bool {
 	return b != C.SANE_FALSE
 }
 
-func boolToSane(b bool) C.SANE_Bool {
+func boolToSane(b bool) C.SANE_Word {
 	if b {
 		return C.SANE_TRUE
 	}
 	return C.SANE_FALSE
+}
+
+func intFromSane(i C.SANE_Word) int {
+	return int(i)
+}
+
+func intToSane(i int) C.SANE_Word {
+	return C.SANE_Word(i)
 }
 
 func strFromSane(s C.SANE_String_Const) string {
@@ -180,12 +184,27 @@ func strToSane(s string) C.SANE_String_Const {
 	return C.SANE_String_Const(unsafe.Pointer(&str[0]))
 }
 
-func floatFromSane(f C.SANE_Fixed) float64 {
+func floatFromSane(f C.SANE_Word) float64 {
 	return float64(f) / (1 << C.SANE_FIXED_SCALE_SHIFT)
 }
 
-func floatToSane(f float64) C.SANE_Fixed {
-	return C.SANE_Fixed(f * (1 << C.SANE_FIXED_SCALE_SHIFT))
+func floatToSane(f float64) C.SANE_Word {
+	return C.SANE_Word(f * (1 << C.SANE_FIXED_SCALE_SHIFT))
+}
+
+func nthWord(p *C.SANE_Word, i int) C.SANE_Word {
+	a := (*[1 << 30]C.SANE_Word)(unsafe.Pointer(p))
+	return a[i]
+}
+
+func setNthWord(p *C.SANE_Word, i int, w C.SANE_Word) {
+	a := (*[1 << 30]C.SANE_Word)(unsafe.Pointer(p))
+	a[i] = w
+}
+
+func nthString(p *C.SANE_String_Const, i int) C.SANE_String_Const {
+	a := (*[1 << 30]C.SANE_String_Const)(unsafe.Pointer(p))
+	return a[i]
 }
 
 // Init must be called before the package can be used.
@@ -202,14 +221,19 @@ func Exit() {
 	C.sane_exit()
 }
 
+func nthDevice(p **C.SANE_Device, i int) *C.SANE_Device {
+	a := (*[1 << 30]*C.SANE_Device)(unsafe.Pointer(p))
+	return a[i]
+}
+
 // Devices lists all available devices.
 func Devices() (devs []Device, err error) {
 	var p **C.SANE_Device
 	if s := C.sane_get_devices(&p, C.SANE_FALSE); s != C.SANE_STATUS_GOOD {
 		return nil, mkError(s)
 	}
-	for n := 0; C.nth_device(p, C.int(n)) != nil; n++ {
-		p := C.nth_device(p, C.int(n))
+	for i := 0; nthDevice(p, i) != nil; i++ {
+		p := nthDevice(p, i)
 		devs = append(devs, Device{
 			strFromSane(p.name),
 			strFromSane(p.vendor),
@@ -240,38 +264,41 @@ func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	r := C.constr_range(d)
 	switch o.Type {
 	case TypeInt:
-		o.ConstrRange = &Range{int(r.min), int(r.max), int(r.quant)}
+		o.ConstrRange = &Range{
+			intFromSane(r.min),
+			intFromSane(r.max),
+			intFromSane(r.quant)}
 	case TypeFloat:
 		o.ConstrRange = &Range{
-			floatFromSane(C.SANE_Fixed(r.min)),
-			floatFromSane(C.SANE_Fixed(r.max)),
-			floatFromSane(C.SANE_Fixed(r.quant))}
+			floatFromSane(r.min),
+			floatFromSane(r.max),
+			floatFromSane(r.quant)}
 	}
 }
 
 func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := C.constr_word_list(d)
+	n := intFromSane(nthWord(p, 0))
 	// First word is number of remaining words in array.
-	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
-		i := int(C.nth_word(p, C.int(i)))
-		o.ConstrSet = append(o.ConstrSet, interface{}(i))
+	for i := 1; i <= n; i++ {
+		o.ConstrSet = append(o.ConstrSet, intFromSane(nthWord(p, i)))
 	}
 }
 
 func parseFloatConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := C.constr_word_list(d)
+	n := intFromSane(nthWord(p, 0))
 	// First word is number of remaining words in array.
-	for i, n := 1, int(C.nth_word(p, C.int(0))); i <= n; i++ {
-		f := floatFromSane(C.SANE_Fixed(C.nth_word(p, C.int(i))))
-		o.ConstrSet = append(o.ConstrSet, interface{}(f))
+	for i := 1; i <= n; i++ {
+		o.ConstrSet = append(o.ConstrSet, floatFromSane(nthWord(p, i)))
 	}
 }
 
 func parseStrConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := C.constr_string_list(d)
 	// Array is null-terminated.
-	for n := 0; C.nth_string(p, C.int(n)) != nil; n++ {
-		s := strFromSane(C.nth_string(p, C.int(n)))
+	for i := 0; nthString(p, i) != nil; i++ {
+		s := strFromSane(nthString(p, i))
 		o.ConstrSet = append(o.ConstrSet, interface{}(s))
 	}
 }
@@ -339,11 +366,11 @@ func readArrayAt(p unsafe.Pointer, i int, t reflect.Type) interface{} {
 	ptr := (*C.SANE_Word)(p)
 	switch t.Kind() {
 	case reflect.Bool:
-		return interface{}(boolFromSane(C.SANE_Bool(C.nth_word(ptr, C.int(i)))))
+		return boolFromSane(nthWord(ptr, i))
 	case reflect.Int:
-		return interface{}(int(C.nth_word(ptr, C.int(i))))
+		return intFromSane(nthWord(ptr, i))
 	case reflect.Float64:
-		return interface{}(floatFromSane(C.SANE_Fixed(C.nth_word(ptr, C.int(i)))))
+		return floatFromSane(nthWord(ptr, i))
 	default:
 		return nil
 	}
@@ -428,11 +455,11 @@ func writeArrayAt(p unsafe.Pointer, i int, v reflect.Value) {
 	ptr := (*C.SANE_Word)(p)
 	switch v.Type().Kind() {
 	case reflect.Bool:
-		C.set_nth_word(ptr, C.int(i), C.SANE_Word(boolToSane(v.Bool())))
+		setNthWord(ptr, i, boolToSane(v.Bool()))
 	case reflect.Int:
-		C.set_nth_word(ptr, C.int(i), C.SANE_Word(C.SANE_Int(v.Int())))
+		setNthWord(ptr, i, intToSane(int(v.Int())))
 	case reflect.Float64:
-		C.set_nth_word(ptr, C.int(i), C.SANE_Word(floatToSane(v.Float())))
+		setNthWord(ptr, i, floatToSane(v.Float()))
 	}
 }
 
@@ -511,7 +538,7 @@ func (c *Conn) Params() (Params, error) {
 	}
 	return Params{
 		Format:        Format(p.format),
-		IsLast:        boolFromSane(p.last_frame),
+		IsLast:        boolFromSane(C.SANE_Word(p.last_frame)),
 		BytesPerLine:  int(p.bytes_per_line),
 		PixelsPerLine: int(p.pixels_per_line),
 		Lines:         int(p.lines),
