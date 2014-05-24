@@ -299,7 +299,7 @@ func parseStrConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	// Array is null-terminated.
 	for i := 0; nthString(p, i) != nil; i++ {
 		s := strFromSane(nthString(p, i))
-		o.ConstrSet = append(o.ConstrSet, interface{}(s))
+		o.ConstrSet = append(o.ConstrSet, s)
 	}
 }
 
@@ -410,7 +410,7 @@ func (c *Conn) GetOption(name string) (interface{}, error) {
 			case TypeFloat:
 				return readArray(p, reflect.TypeOf(0.0), o.Length), nil
 			case TypeString:
-				return interface{}(strFromSane(C.SANE_String_Const(p))), nil
+				return strFromSane(C.SANE_String_Const(p)), nil
 			}
 		}
 	}
