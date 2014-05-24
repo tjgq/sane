@@ -133,26 +133,32 @@ var (
 	ErrDenied      = fmt.Errorf("access denied")
 )
 
-var errMap = map[C.SANE_Status]Error{
-	C.SANE_STATUS_UNSUPPORTED:   ErrUnsupported,
-	C.SANE_STATUS_CANCELLED:     ErrCancelled,
-	C.SANE_STATUS_DEVICE_BUSY:   ErrBusy,
-	C.SANE_STATUS_INVAL:         ErrInvalid,
-	C.SANE_STATUS_JAMMED:        ErrJammed,
-	C.SANE_STATUS_NO_DOCS:       ErrEmpty,
-	C.SANE_STATUS_COVER_OPEN:    ErrCoverOpen,
-	C.SANE_STATUS_IO_ERROR:      ErrIo,
-	C.SANE_STATUS_NO_MEM:        ErrNoMem,
-	C.SANE_STATUS_ACCESS_DENIED: ErrDenied,
-}
-
 // mkError converts a libsane status code to an Error.
 func mkError(s C.SANE_Status) Error {
-	err, ok := errMap[s]
-	if ok {
-		return err
+	switch s {
+	case C.SANE_STATUS_UNSUPPORTED:
+		return ErrUnsupported
+	case C.SANE_STATUS_CANCELLED:
+		return ErrCancelled
+	case C.SANE_STATUS_DEVICE_BUSY:
+		return ErrBusy
+	case C.SANE_STATUS_INVAL:
+		return ErrInvalid
+	case C.SANE_STATUS_JAMMED:
+		return ErrJammed
+	case C.SANE_STATUS_NO_DOCS:
+		return ErrEmpty
+	case C.SANE_STATUS_COVER_OPEN:
+		return ErrCoverOpen
+	case C.SANE_STATUS_IO_ERROR:
+		return ErrIo
+	case C.SANE_STATUS_NO_MEM:
+		return ErrNoMem
+	case C.SANE_STATUS_ACCESS_DENIED:
+		return ErrDenied
+	default:
+		return fmt.Errorf("unknown error code %d", int(s))
 	}
-	return fmt.Errorf("unknown error code %d", int(s))
 }
 
 func boolFromSane(b C.SANE_Word) bool {
