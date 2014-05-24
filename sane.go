@@ -23,6 +23,12 @@ import (
 	"unsafe"
 )
 
+var (
+	boolType  = reflect.TypeOf(false)
+	intType   = reflect.TypeOf(0)
+	floatType = reflect.TypeOf(0.0)
+)
+
 const wordSize = unsafe.Sizeof(C.SANE_Word(0))
 
 type Type int
@@ -410,11 +416,11 @@ func (c *Conn) GetOption(name string) (interface{}, error) {
 			}
 			switch o.Type {
 			case TypeBool:
-				return readArray(p, reflect.TypeOf(false), o.Length), nil
+				return readArray(p, boolType, o.Length), nil
 			case TypeInt:
-				return readArray(p, reflect.TypeOf(0), o.Length), nil
+				return readArray(p, intType, o.Length), nil
 			case TypeFloat:
-				return readArray(p, reflect.TypeOf(0.0), o.Length), nil
+				return readArray(p, floatType, o.Length), nil
 			case TypeString:
 				return strFromSane(C.SANE_String_Const(p)), nil
 			}
@@ -435,15 +441,15 @@ func fillOpt(o Option, v interface{}) (unsafe.Pointer, error) {
 
 	switch o.Type {
 	case TypeBool:
-		if !writeArray(p, reflect.TypeOf(false), l, v) {
+		if !writeArray(p, boolType, l, v) {
 			return nil, fmt.Errorf("option %s expects %sbool arg", o.Name, s)
 		}
 	case TypeInt:
-		if !writeArray(p, reflect.TypeOf(0), l, v) {
+		if !writeArray(p, intType, l, v) {
 			return nil, fmt.Errorf("option %s expects %sint arg", o.Name, s)
 		}
 	case TypeFloat:
-		if !writeArray(p, reflect.TypeOf(0.0), l, v) {
+		if !writeArray(p, floatType, l, v) {
 			return nil, fmt.Errorf("option %s expects %sfloat64 arg", o.Name, s)
 		}
 	case TypeString:
