@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package sane provides access to version 1 of the SANE scanner API.
 package sane
 
 /*
@@ -255,7 +254,8 @@ func Devices() (devs []Device, err error) {
 	return devs, nil
 }
 
-// Open opens a connection to a device.
+// Open opens a connection to a device with a given name.
+// The empty string opens the first available device.
 func Open(name string) (*Conn, error) {
 	var h C.SANE_Handle
 	if s := C.sane_open(strToSane(name), &h); s != C.SANE_STATUS_GOOD {
@@ -350,7 +350,7 @@ func parseOpt(d *C.SANE_Option_Descriptor) (o Option) {
 
 // Options returns a list of available scanning options.
 // The list of options usually remains valid until the connection is closed,
-// but setting some options may affect the availability of others.
+// but setting some options may affect the value or availability of others.
 func (c *Conn) Options() (opts []Option) {
 	if c.options != nil {
 		return c.options // use cached value
