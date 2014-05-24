@@ -4,15 +4,8 @@
 
 package sane
 
-/*
- #cgo LDFLAGS: -lsane
- #include <sane/sane.h>
-
- // C union member accessors
- const SANE_String_Const *constr_string_list(SANE_Option_Descriptor *d) { return d->constraint.string_list; }
- const SANE_Word *constr_word_list(SANE_Option_Descriptor *d) { return d->constraint.word_list; }
- const SANE_Range *constr_range(SANE_Option_Descriptor *d) { return d->constraint.range; }
-*/
+// #cgo LDFLAGS: -lsane
+// #include <sane/sane.h>
 import "C"
 
 import (
@@ -273,7 +266,7 @@ func (c *Conn) Start() error {
 }
 
 func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
-	r := C.constr_range(d)
+	r := *(**C.SANE_Range)(unsafe.Pointer(&d.constraint))
 	switch o.Type {
 	case TypeInt:
 		o.ConstrRange = &Range{
@@ -289,7 +282,7 @@ func parseRangeConstr(d *C.SANE_Option_Descriptor, o *Option) {
 }
 
 func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
-	p := C.constr_word_list(d)
+	p := *(**C.SANE_Word)(unsafe.Pointer(&d.constraint))
 	n := intFromSane(nthWord(p, 0))
 	// First word is number of remaining words in array.
 	for i := 1; i <= n; i++ {
@@ -298,7 +291,7 @@ func parseIntConstr(d *C.SANE_Option_Descriptor, o *Option) {
 }
 
 func parseFloatConstr(d *C.SANE_Option_Descriptor, o *Option) {
-	p := C.constr_word_list(d)
+	p := *(**C.SANE_Word)(unsafe.Pointer(&d.constraint))
 	n := intFromSane(nthWord(p, 0))
 	// First word is number of remaining words in array.
 	for i := 1; i <= n; i++ {
@@ -307,7 +300,7 @@ func parseFloatConstr(d *C.SANE_Option_Descriptor, o *Option) {
 }
 
 func parseStrConstr(d *C.SANE_Option_Descriptor, o *Option) {
-	p := C.constr_string_list(d)
+	p := *(**C.SANE_String_Const)(unsafe.Pointer(&d.constraint))
 	// Array is null-terminated.
 	for i := 0; nthString(p, i) != nil; i++ {
 		s := strFromSane(nthString(p, i))
