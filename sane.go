@@ -9,8 +9,6 @@ package sane
  #cgo LDFLAGS: -lsane
  #include <sane/sane.h>
 
- #define SaneWordSize sizeof(SANE_Word)
-
  // C union member accessors
  const SANE_String_Const *constr_string_list(SANE_Option_Descriptor *d) { return d->constraint.string_list; }
  const SANE_Word *constr_word_list(SANE_Option_Descriptor *d) { return d->constraint.word_list; }
@@ -24,6 +22,8 @@ import (
 	"reflect"
 	"unsafe"
 )
+
+const wordSize = unsafe.Sizeof(C.SANE_Word(0))
 
 type Type int
 
@@ -311,7 +311,7 @@ func parseOpt(d *C.SANE_Option_Descriptor) (o Option) {
 	o.Unit = Unit(d.unit)
 	o.size = int(d.size)
 	if o.Type == TypeInt || o.Type == TypeFloat {
-		o.Length = int(d.size / C.SaneWordSize)
+		o.Length = o.size / int(wordSize)
 	} else {
 		o.Length = 1
 	}
@@ -420,7 +420,7 @@ func (c *Conn) GetOption(name string) (interface{}, error) {
 func fillOpt(o Option, v interface{}) (unsafe.Pointer, error) {
 	b := make([]byte, o.size)
 	p := unsafe.Pointer(&b[0])
-	l := int(o.size / C.SaneWordSize)
+	l := o.size / int(wordSize)
 
 	s := ""
 	if l > 1 {
