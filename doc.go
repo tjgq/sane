@@ -22,7 +22,7 @@
 //
 //   opts := c.Options()
 //   val, err := c.GetOption(name)
-//   err, inf := c.SetOption(name, val)
+//   inf, err := c.SetOption(name, val)
 //
 // To scan an image with the current options, call ReadImage. The returned
 // Image object implements the standard library image.Image interface.
