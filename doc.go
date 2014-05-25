@@ -37,7 +37,7 @@
 // Additional images may be scanned while the connection is open. To close the
 // connection, call Close.
 //
-// c.Close()
+//   c.Close()
 //
 // Finally, when you are done with the library, call Exit.
 //
