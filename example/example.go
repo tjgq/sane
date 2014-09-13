@@ -8,7 +8,7 @@ package main
 import (
 	"code.google.com/p/go.image/tiff"
 	"fmt"
-	"github.com/tjgq/go-sane"
+	"github.com/tjgq/sane"
 	"image"
 	"image/jpeg"
 	"image/png"

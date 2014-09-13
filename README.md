@@ -1,18 +1,18 @@
-# go-sane
+# sane
 
 This package provides bindings to the SANE scanner API for the Go programming
 language.
 
 ## INSTALLING
 
-Run `go get github.com/tjgq/go-sane`.
+Run `go get github.com/tjgq/sane`.
 
 The bindings are generated against `libsane` using `cgo`.
 You will need to have the appropriate development packages installed.
 
 ## USING
 
-Read the package documentation at [GoDoc.org](http://godoc.org/github.com/tjgq/go-sane).
+Read the package documentation at [GoDoc.org](http://godoc.org/github.com/tjgq/sane).
 
 A sample program is provided in the `example` subdirectory.
 It (mostly) mimics the `scanimage` utility shipped with SANE.
