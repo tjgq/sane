@@ -22,8 +22,7 @@ Further information about the SANE API can be found at the
 
 ## BUGS
 
-All SANE functionality is supported except authentication callbacks (which may be supported one day)
-and asynchronous I/O (which goes against the spirit of Go and will not be supported).
+All SANE functionality is supported except authentication callbacks.
 
 The package contains a test suite that runs against the SANE test device.
 However, more testing with real-world devices is always welcome.
