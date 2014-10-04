@@ -23,8 +23,10 @@ var (
 
 const wordSize = unsafe.Sizeof(C.SANE_Word(0))
 
+// Type represents the data type of an option.
 type Type int
 
+// Type constants.
 const (
 	TypeBool   Type = C.SANE_TYPE_BOOL
 	TypeInt         = C.SANE_TYPE_INT
@@ -34,8 +36,10 @@ const (
 	typeGroup       = C.SANE_TYPE_GROUP // internal use only
 )
 
+// Unit represents the physical unit of an option.
 type Unit int
 
+// Unit constants.
 const (
 	UnitNone    Unit = C.SANE_UNIT_NONE
 	UnitPixel        = C.SANE_UNIT_PIXEL
@@ -46,8 +50,10 @@ const (
 	UnitUsec         = C.SANE_UNIT_MICROSECOND
 )
 
+// Format represents the format of a frame.
 type Format int
 
+// Format constants.
 const (
 	FrameGray  Format = C.SANE_FRAME_GRAY
 	FrameRgb          = C.SANE_FRAME_RGB
@@ -56,18 +62,22 @@ const (
 	FrameBlue         = C.SANE_FRAME_BLUE
 )
 
+// Info signals the side effects of setting an option.
 type Info struct {
 	Inexact      bool // option set to an approximate value
 	ReloadOpts   bool // option affects value or availability of other options
 	ReloadParams bool // option affects scanning parameters
 }
 
+// A Range is a set of discrete integer or fixed-point values. Value x is in
+// the range if there is an integer k >= 0 such that Min <= k*Quant <= Max.
 type Range struct {
 	Min   interface{} // minimum value
 	Max   interface{} // maximum value
 	Quant interface{} // quantization step
 }
 
+// Option represents a scanning option.
 type Option struct {
 	Name         string        // option name
 	Group        string        // option group
@@ -90,23 +100,26 @@ type Option struct {
 
 type autoType int
 
-var Auto = autoType(0) // automatic mode for SetOption
+// Auto is accepted by GetOption to set an option to its automatic value.
+var Auto = autoType(0)
 
+// Device represents a scanning device.
 type Device struct {
 	Name, Vendor, Model, Type string
 }
 
-// A connection to a device, which can be used to get and set scanning
-// options, or to read one or more frames.
+// Conn is a connection to a scanning device. It can be used to get and set
+// scanning options or to read one or more frames.
 //
-// It implements the Reader interface, but note that it only makes sense to
-// call Read after acquisition of a new frame is started by calling Start.
+// Conn implements the Reader interface. However, it only makes sense to call
+// Read after acquisition of a new frame is started by calling Start.
 type Conn struct {
 	Device  string // device name
 	handle  C.SANE_Handle
 	options []Option
 }
 
+// Params describes the properties of a frame.
 type Params struct {
 	Format        Format // frame format
 	IsLast        bool   // true if last frame in multi-frame image
@@ -116,8 +129,10 @@ type Params struct {
 	Depth         int    // bits per sample
 }
 
+// Error represents a scanning error.
 type Error error
 
+// Error constants.
 var (
 	ErrUnsupported = fmt.Errorf("operation not supported")
 	ErrCancelled   = fmt.Errorf("operation cancelled")
