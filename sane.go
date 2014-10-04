@@ -242,7 +242,8 @@ func Devices() (devs []Device, err error) {
 			strFromSane(p.name),
 			strFromSane(p.vendor),
 			strFromSane(p.model),
-			strFromSane(p._type)})
+			strFromSane(p._type),
+		})
 	}
 	return devs, nil
 }
