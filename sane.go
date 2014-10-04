@@ -384,13 +384,12 @@ func readArrayAt(p unsafe.Pointer, i int, t reflect.Type) interface{} {
 func readArray(p unsafe.Pointer, t reflect.Type, n int) interface{} {
 	if n == 1 {
 		return readArrayAt(p, 0, t)
-	} else {
-		v := reflect.MakeSlice(reflect.SliceOf(t), 0, n)
-		for i := 0; i < n; i++ {
-			v = reflect.Append(v, reflect.ValueOf(readArrayAt(p, i, t)))
-		}
-		return v.Interface()
 	}
+	v := reflect.MakeSlice(reflect.SliceOf(t), 0, n)
+	for i := 0; i < n; i++ {
+		v = reflect.Append(v, reflect.ValueOf(readArrayAt(p, i, t)))
+	}
+	return v.Interface()
 }
 
 // GetOption gets the current value for the named option. If successful, it
