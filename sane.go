@@ -212,17 +212,17 @@ func floatToSane(f float64) C.SANE_Word {
 }
 
 func nthWord(p *C.SANE_Word, i int) C.SANE_Word {
-	a := (*[1 << 30]C.SANE_Word)(unsafe.Pointer(p))
+	a := (*[1 << 16]C.SANE_Word)(unsafe.Pointer(p))
 	return a[i]
 }
 
 func setNthWord(p *C.SANE_Word, i int, w C.SANE_Word) {
-	a := (*[1 << 30]C.SANE_Word)(unsafe.Pointer(p))
+	a := (*[1 << 16]C.SANE_Word)(unsafe.Pointer(p))
 	a[i] = w
 }
 
 func nthString(p *C.SANE_String_Const, i int) C.SANE_String_Const {
-	a := (*[1 << 30]C.SANE_String_Const)(unsafe.Pointer(p))
+	a := (*[1 << 16]C.SANE_String_Const)(unsafe.Pointer(p))
 	return a[i]
 }
 
@@ -241,7 +241,7 @@ func Exit() {
 }
 
 func nthDevice(p **C.SANE_Device, i int) *C.SANE_Device {
-	a := (*[1 << 30]*C.SANE_Device)(unsafe.Pointer(p))
+	a := (*[1 << 16]*C.SANE_Device)(unsafe.Pointer(p))
 	return a[i]
 }
 
