@@ -581,6 +581,10 @@ func runColorTest(t *testing.T, depth int, n int, f func(i int, c *Conn)) {
 }
 
 func TestDevices(t *testing.T) {
+	// Devices may be slow querying the network for available devices.
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	if err := Init(); err != nil {
 		t.Fatal("init failed:", err)
 	}
