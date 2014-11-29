@@ -6,9 +6,9 @@
 package main
 
 import (
-	"code.google.com/p/go.image/tiff"
 	"fmt"
 	"github.com/tjgq/sane"
+	"golang.org/x/image/tiff"
 	"image"
 	"image/jpeg"
 	"image/png"
