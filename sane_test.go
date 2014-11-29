@@ -581,6 +581,10 @@ func runColorTest(t *testing.T, depth int, n int, f func(i int, c *Conn)) {
 }
 
 func TestDevices(t *testing.T) {
+	if err := Init(); err != nil {
+		t.Fatal("init failed:", err)
+	}
+	defer Exit()
 	if _, err := Devices(); err != nil {
 		t.Fatal("list devices failed:", err)
 	}
