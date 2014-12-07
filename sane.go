@@ -9,6 +9,7 @@ package sane
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -135,16 +136,16 @@ type Error error
 
 // Error constants.
 var (
-	ErrUnsupported = fmt.Errorf("operation not supported")
-	ErrCancelled   = fmt.Errorf("operation cancelled")
-	ErrBusy        = fmt.Errorf("device busy")
-	ErrInvalid     = fmt.Errorf("invalid argument")
-	ErrJammed      = fmt.Errorf("feeder jammed")
-	ErrEmpty       = fmt.Errorf("feeder empty")
-	ErrCoverOpen   = fmt.Errorf("cover open")
-	ErrIo          = fmt.Errorf("input/output error")
-	ErrNoMem       = fmt.Errorf("out of memory")
-	ErrDenied      = fmt.Errorf("access denied")
+	ErrUnsupported = errors.New("sane: operation not supported")
+	ErrCancelled   = errors.New("sane: operation cancelled")
+	ErrBusy        = errors.New("sane: device busy")
+	ErrInvalid     = errors.New("sane: invalid argument")
+	ErrJammed      = errors.New("sane: feeder jammed")
+	ErrEmpty       = errors.New("sane: feeder empty")
+	ErrCoverOpen   = errors.New("sane: cover open")
+	ErrIo          = errors.New("sane: input/output error")
+	ErrNoMem       = errors.New("sane: out of memory")
+	ErrDenied      = errors.New("sane: access denied")
 )
 
 // mkError converts a libsane status code to an Error.
