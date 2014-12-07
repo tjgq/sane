@@ -252,7 +252,11 @@ func doScan(deviceName string, fileName string, optargs []string) {
 	if err != nil {
 		die(err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			die(err)
+		}
+	}()
 
 	c, err := openDevice(deviceName)
 	if err != nil {
