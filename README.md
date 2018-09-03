@@ -1,5 +1,7 @@
 # sane
 
+[![Build Status](https://travis-ci.org/tjgq/sane.svg?branch=master)](https://travis-ci.org/tjgq/sane)
+
 This package provides bindings to the SANE scanner API for the Go programming
 language.
 
