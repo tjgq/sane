@@ -9,6 +9,7 @@ import (
 	"fmt"
 )
 
+// A Frame represents one or more channels in an image.
 type Frame struct {
 	Format       Format // frame format
 	Width        int    // width in pixels
@@ -21,7 +22,7 @@ type Frame struct {
 }
 
 // ReadFrame reads and returns a whole frame.
-func (c *Conn) ReadFrame() (f *Frame, err error) {
+func (c *Conn) ReadFrame() (*Frame, error) {
 	if err := c.Start(); err != nil {
 		return nil, err
 	}
@@ -72,9 +73,8 @@ func (f *Frame) At(x, y, ch int) uint16 {
 		if f.Format == FrameGray {
 			// For B&W lineart, 0 is white and 1 is black
 			return uint16(s ^ 0x1)
-		} else {
-			return uint16(s)
 		}
+		return uint16(s)
 	case 8:
 		i := f.bytesPerLine*y + f.Channels*x + ch
 		return uint16(f.data[i])

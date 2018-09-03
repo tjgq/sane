@@ -365,9 +365,8 @@ func gray1At(x, y int) color.Gray {
 	xPos, yPos := (x/16)%2, (y/16)%2
 	if xPos^yPos == 0 {
 		return color.Gray{0xFF}
-	} else {
-		return color.Gray{0x00}
 	}
+	return color.Gray{0x00}
 }
 
 func gray8At(x, y int) color.Gray {
@@ -450,21 +449,20 @@ func color8At(x, y int) color.RGBA {
 	xPos, yPos := x/5, y/5
 	if x%5 == 0 || y%5 == 0 {
 		return color.RGBA{0x55, 0x55, 0x55, 0xFF}
+	}
+	var s uint8
+	if yPos%2 == 0 {
+		s = uint8(xPos % 0x100)
 	} else {
-		var s uint8
-		if yPos%2 == 0 {
-			s = uint8(xPos % 0x100)
-		} else {
-			s = uint8(0xFF - (xPos % 0x100))
-		}
-		switch yPos % 6 {
-		case 0, 1:
-			return color.RGBA{s, 0, 0, 0xFF}
-		case 2, 3:
-			return color.RGBA{0, s, 0, 0xFF}
-		case 4, 5:
-			return color.RGBA{0, 0, s, 0xFF}
-		}
+		s = uint8(0xFF - (xPos % 0x100))
+	}
+	switch yPos % 6 {
+	case 0, 1:
+		return color.RGBA{s, 0, 0, 0xFF}
+	case 2, 3:
+		return color.RGBA{0, s, 0, 0xFF}
+	case 4, 5:
+		return color.RGBA{0, 0, s, 0xFF}
 	}
 	return color.RGBA{} // shouldn't happen
 }
@@ -481,16 +479,15 @@ func color16At(x, y int) color.RGBA64 {
 	xPos, yPos := x%260, y%260
 	if xPos < 4 || yPos < 4 {
 		return color.RGBA64{0x5555, 0x5555, 0x5555, 0xFFFF}
-	} else {
-		s := uint16((xPos-4)<<8 + (yPos - 4))
-		switch xArea % 3 {
-		case 0:
-			return color.RGBA64{s, 0, 0, 0xFFFF}
-		case 1:
-			return color.RGBA64{0, s, 0, 0xFFFF}
-		case 2:
-			return color.RGBA64{0, 0, s, 0xFFFF}
-		}
+	}
+	s := uint16((xPos-4)<<8 + (yPos - 4))
+	switch xArea % 3 {
+	case 0:
+		return color.RGBA64{s, 0, 0, 0xFFFF}
+	case 1:
+		return color.RGBA64{0, s, 0, 0xFFFF}
+	case 2:
+		return color.RGBA64{0, 0, s, 0xFFFF}
 	}
 	return color.RGBA64{} // shouldn't happen
 }
