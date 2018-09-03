@@ -1,0 +1,21 @@
+sudo: false # go test hangs on linux without this
+
+language: go
+
+go:
+  - 1.8.x
+  - 1.9.x
+  - 1.10.x
+  - 1.11.x
+
+os:
+  - linux
+  - osx
+
+addons:
+  apt:
+    packages:
+      - libsane-dev
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install sane-backends; fi
