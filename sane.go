@@ -5,6 +5,7 @@
 package sane
 
 // #cgo LDFLAGS: -lsane
+// #include <stdlib.h>
 // #include <sane/sane.h>
 import "C"
 
@@ -195,14 +196,14 @@ func intToSane(i int) C.SANE_Word {
 	return C.SANE_Word(i)
 }
 
-func strFromSane(s C.SANE_String_Const) string {
-	return C.GoString((*C.char)(unsafe.Pointer(s)))
+func strFromSane(s C.SANE_String_Const) *C.char {
+	// Cast necessary on older Go versions.
+	return (*C.char)(unsafe.Pointer(s))
 }
 
-func strToSane(s string) C.SANE_String_Const {
-	str := make([]byte, len(s)+1) // +1 for null terminator
-	copy(str, s)
-	return C.SANE_String_Const(unsafe.Pointer(&str[0]))
+func strToSane(s *C.char) C.SANE_String_Const {
+	// Cast necessary on older Go versions.
+	return C.SANE_String_Const(unsafe.Pointer(s))
 }
 
 func floatFromSane(f C.SANE_Word) float64 {
@@ -256,10 +257,10 @@ func Devices() (devs []Device, err error) {
 	for i := 0; nthDevice(p, i) != nil; i++ {
 		p := nthDevice(p, i)
 		devs = append(devs, Device{
-			strFromSane(p.name),
-			strFromSane(p.vendor),
-			strFromSane(p.model),
-			strFromSane(p._type),
+			C.GoString(strFromSane(p.name)),
+			C.GoString(strFromSane(p.vendor)),
+			C.GoString(strFromSane(p.model)),
+			C.GoString(strFromSane(p._type)),
 		})
 	}
 	return devs, nil
@@ -269,7 +270,9 @@ func Devices() (devs []Device, err error) {
 // The empty string opens the first available device.
 func Open(name string) (*Conn, error) {
 	var h C.SANE_Handle
-	if s := C.sane_open(strToSane(name), &h); s != C.SANE_STATUS_GOOD {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	if s := C.sane_open(strToSane(cname), &h); s != C.SANE_STATUS_GOOD {
 		return nil, mkError(s)
 	}
 	return &Conn{name, h, nil}, nil
@@ -321,15 +324,15 @@ func parseStrConstr(d *C.SANE_Option_Descriptor, o *Option) {
 	p := *(**C.SANE_String_Const)(unsafe.Pointer(&d.constraint))
 	// Array is null-terminated.
 	for i := 0; nthString(p, i) != nil; i++ {
-		s := strFromSane(nthString(p, i))
+		s := C.GoString(strFromSane(nthString(p, i)))
 		o.ConstrSet = append(o.ConstrSet, s)
 	}
 }
 
 func parseOpt(d *C.SANE_Option_Descriptor) (o Option) {
-	o.Name = strFromSane(d.name)
-	o.Title = strFromSane(d.title)
-	o.Desc = strFromSane(d.desc)
+	o.Name = C.GoString(strFromSane(d.name))
+	o.Title = C.GoString(strFromSane(d.title))
+	o.Desc = C.GoString(strFromSane(d.desc))
 	o.Type = Type(d._type)
 	o.Unit = Unit(d.unit)
 	o.size = int(d.size)
@@ -432,7 +435,7 @@ func (c *Conn) GetOption(name string) (interface{}, error) {
 			case TypeFloat:
 				return readArray(p, floatType, o.Length), nil
 			case TypeString:
-				return strFromSane(C.SANE_String_Const(p)), nil
+				return C.GoString(strFromSane(C.SANE_String_Const(p))), nil
 			}
 		}
 	}
