@@ -111,3 +111,49 @@ func (c *Conn) ReadImage() (*Image, error) {
 	}
 	return &m, nil
 }
+
+// ReadAvailableImages reads all available image from the connection.
+// This is required for example for duplex scanners like the Fujitsu
+// ix500 as ReadImage only fetches one page from the scanner.
+func (c *Conn) ReadAvailableImages() ([]*Image, error) {
+	defer c.Cancel()
+
+	var (
+		images       = []*Image{}
+		keepFetching = true
+	)
+
+	for keepFetching {
+		m := Image{}
+		for {
+			f, err := c.ReadFrame()
+			if err != nil {
+				if err == ErrEmpty && len(images) > 0 {
+					// This is expected in multi-page scenarios and signals
+					// there are no more pages to come.
+					keepFetching = false
+					break
+				}
+
+				// Other errors are returned
+				return nil, err
+			}
+			switch f.Format {
+			case FrameGray, FrameRgb, FrameRed:
+				m.fs[0] = f
+			case FrameGreen:
+				m.fs[1] = f
+			case FrameBlue:
+				m.fs[2] = f
+			default:
+				return nil, fmt.Errorf("unknown frame type %d", f.Format)
+			}
+			if f.IsLast {
+				images = append(images, &m)
+				break
+			}
+		}
+	}
+
+	return images, nil
+}
