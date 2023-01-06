@@ -86,10 +86,14 @@ func (m *Image) At(x, y int) color.Color {
 }
 
 // ReadImage reads an image from the connection.
-func (c *Conn) ReadImage() (*Image, error) {
-	defer c.Cancel()
+func (c *Conn) ReadImage() (i *Image, err error) {
+	defer func() {
+		if err != nil {
+			c.Cancel()
+		}
+	}()
 
-	m := Image{}
+	i = new(Image)
 	for {
 		f, err := c.ReadFrame()
 		if err != nil {
@@ -97,11 +101,11 @@ func (c *Conn) ReadImage() (*Image, error) {
 		}
 		switch f.Format {
 		case FrameGray, FrameRgb, FrameRed:
-			m.fs[0] = f
+			i.fs[0] = f
 		case FrameGreen:
-			m.fs[1] = f
+			i.fs[1] = f
 		case FrameBlue:
-			m.fs[2] = f
+			i.fs[2] = f
 		default:
 			return nil, fmt.Errorf("unknown frame type %d", f.Format)
 		}
@@ -109,5 +113,5 @@ func (c *Conn) ReadImage() (*Image, error) {
 			break
 		}
 	}
-	return &m, nil
+	return i, nil
 }
